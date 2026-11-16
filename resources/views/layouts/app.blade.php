@@ -97,6 +97,11 @@
                             <i class="bi bi-person" aria-hidden="true"></i> Iniciar sesión
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link @if (request()->routeIs('registro')) active @endif" href="{{ route('registro') }}">
+                            <i class="bi bi-person-plus" aria-hidden="true"></i> Registrarse
+                        </a>
+                    </li>
                 @endauth
             </ul>
         </div>

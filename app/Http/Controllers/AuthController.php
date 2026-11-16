@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Inicio y cierre de sesión con la autenticación nativa de Laravel (sesiones).
- * Las cuentas las crea UsuarioSeeder; todavía no hay registro de usuarios nuevos.
+ * Los clientes se registran solos (RegistroController); las cuentas de empleado y admin las crea UsuarioSeeder.
  */
 class AuthController extends Controller
 {

@@ -97,6 +97,8 @@ El catálogo es público. Para consultar por un vehículo o gestionar el sistema
 
 Al pasar una consulta a Negociando el vehículo queda Reservado, y al cerrarla queda Vendido. Esas cerradas son las ventas que cuenta el reporte.
 
+Cualquier visitante puede crear una cuenta de **cliente** en `/registro`. Las cuentas de empleado y de admin no se crean solas: las crea el equipo (hoy, desde el seeder), porque un rol con más permisos no puede elegirlo el propio usuario.
+
 Cuentas de ejemplo (las crea `database/seeders/UsuarioSeeder.php`, que también indica la contraseña de prueba): `admin@autonova.test`, `empleado1@autonova.test` y `cliente1@correo.test`.
 
 ## Pruebas

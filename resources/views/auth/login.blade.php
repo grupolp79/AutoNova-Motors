@@ -39,7 +39,10 @@
                 </form>
             </div>
         </div>
-        <p class="text-center text-muted small mt-3">
+        <p class="text-center text-muted small mt-3 mb-1">
+            ¿Sos cliente y todavía no tenés cuenta? <a href="{{ route('registro') }}">Crear cuenta</a>
+        </p>
+        <p class="text-center text-muted small">
             <i class="bi bi-info-circle" aria-hidden="true"></i>
             El catálogo se puede ver sin iniciar sesión.
         </p>

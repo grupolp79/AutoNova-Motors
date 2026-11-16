@@ -27,8 +27,9 @@
 
     @elseif (! $usuario)
         <h2><i class="bi bi-chat-dots" aria-hidden="true"></i> ¿Te interesa?</h2>
-        <p class="text-muted">Iniciá sesión con tu cuenta de cliente para enviar una consulta por este vehículo.</p>
+        <p class="text-muted">Para enviar una consulta por este vehículo necesitás una cuenta de cliente. Es gratis y se crea en un minuto.</p>
         <a href="{{ route('login') }}" class="btn btn-acento">Iniciar sesión para consultar</a>
+        <a href="{{ route('registro') }}" class="btn btn-outline-dark">Crear cuenta</a>
 
     @else
         @php
