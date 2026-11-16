@@ -59,6 +59,7 @@ class RolesAccesoTest extends TestCase
             ['PUT', '/vehiculos/{id}', 302, 403, 302, 302],
             ['DELETE', '/vehiculos/{id}', 302, 403, 403, 302],
             ['GET', '/reportes/ventas', 302, 403, 403, 200],
+            ['GET', '/usuarios', 302, 403, 403, 200],
         ];
 
         foreach ($tabla as [$metodo, $ruta, $visitante, $cliente, $empleado, $admin]) {
@@ -143,6 +144,7 @@ class RolesAccesoTest extends TestCase
         $this->assertContains('rol:empleado,admin', $rutas['vehiculos.update']->gatherMiddleware());
         $this->assertContains('rol:admin', $rutas['vehiculos.destroy']->gatherMiddleware());
         $this->assertContains('rol:admin', $rutas['reportes.ventas']->gatherMiddleware());
+        $this->assertContains('rol:admin', $rutas['usuarios.index']->gatherMiddleware());
         $this->assertNotContains('rol:admin', $rutas['vehiculos.index']->gatherMiddleware());
     }
 }

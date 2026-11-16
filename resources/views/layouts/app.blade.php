@@ -4,56 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('titulo', 'Catálogo') - AutoNova Motors</title>
-    {{-- Bootstrap 5.3 por CDN (sin npm ni Vite) --}}
+    {{-- Bootstrap 5.3 y Bootstrap Icons por CDN (sin npm ni Vite) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    {{-- Tipografía de Google Fonts; si no carga, autonova.css usa la fuente del sistema --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {{-- Estilos propios. El ?v= cambia cuando se modifica el archivo, así el navegador no usa una copia vieja --}}
+    <link href="{{ asset('css/autonova.css') }}?v={{ filemtime(public_path('css/autonova.css')) }}" rel="stylesheet">
     {{-- Cada vista puede agregar sus propios CSS acá con @push('estilos') --}}
     @stack('estilos')
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark navbar-autonova sticky-top mb-4">
     <div class="container">
-        <a class="navbar-brand" href="{{ route('vehiculos.index') }}">AutoNova Motors</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu">
+        <a class="navbar-brand" href="{{ route('vehiculos.index') }}">
+            <span class="marca-icono"><i class="bi bi-car-front-fill" aria-hidden="true"></i></span>
+            AutoNova Motors
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
+                aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="menu">
-            <ul class="navbar-nav ms-auto align-items-lg-center">
+            {{-- routeIs() marca como activo el enlace de la página en la que se está --}}
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 py-2 py-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('vehiculos.index') }}">Catálogo</a>
+                    <a class="nav-link @if (request()->routeIs('vehiculos.index', 'vehiculos.show')) active @endif"
+                       @if (request()->routeIs('vehiculos.index')) aria-current="page" @endif
+                       href="{{ route('vehiculos.index') }}">Catálogo</a>
                 </li>
 
                 @auth
                     {{-- Alta de vehículos: Empleado y Admin --}}
                     @if (auth()->user()->puedeGestionar())
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('vehiculos.create') }}">+ Nuevo vehículo</a>
+                            <a class="nav-link @if (request()->routeIs('vehiculos.create')) active @endif"
+                               href="{{ route('vehiculos.create') }}">+ Nuevo vehículo</a>
                         </li>
                     @endif
 
-                    {{-- Reporte gerencial: solo Admin --}}
+                    {{-- Reporte gerencial y listado de usuarios: solo Admin --}}
                     @if (auth()->user()->esAdmin())
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('reportes.ventas') }}">Reporte de ventas</a>
+                            <a class="nav-link @if (request()->routeIs('reportes.ventas')) active @endif"
+                               href="{{ route('reportes.ventas') }}">Reporte de ventas</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('usuarios.index')) active @endif"
+                               href="{{ route('usuarios.index') }}">Usuarios</a>
                         </li>
                     @endif
 
                     <li class="nav-item">
-                        <span class="navbar-text ms-lg-3 me-lg-2">
+                        <span class="navbar-text d-inline-flex align-items-center gap-2 ms-lg-3 me-lg-2 my-2 my-lg-0">
+                            <i class="bi bi-person-circle" aria-hidden="true"></i>
                             {{ auth()->user()->name }}
-                            <span class="badge text-bg-secondary">{{ ucfirst(auth()->user()->rol) }}</span>
+                            <span class="badge badge-rol rol-{{ auth()->user()->rol }}">{{ ucfirst(auth()->user()->rol) }}</span>
                         </span>
                     </li>
                     <li class="nav-item">
                         {{-- Cerrar sesión es POST (con @csrf), no un link, para que no se pueda disparar desde otra página --}}
                         <form action="{{ route('logout') }}" method="POST" class="d-inline">
                             @csrf
-                            <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
+                            <button type="submit" class="btn btn-outline-light btn-sm">
+                                <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
+                            </button>
                         </form>
                     </li>
                 @else
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('login') }}">Iniciar sesión</a>
+                        <a class="nav-link @if (request()->routeIs('login')) active @endif" href="{{ route('login') }}">
+                            <i class="bi bi-person" aria-hidden="true"></i> Iniciar sesión
+                        </a>
                     </li>
                 @endauth
             </ul>
@@ -64,22 +89,31 @@
 <main class="container pb-5">
     {{-- Mensaje flash: el controlador lo guarda con ->with('success', ...) y dura un solo request --}}
     @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <div>{{ session('success') }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
         </div>
     @endif
 
     {{-- Mensaje flash de error: ->with('error', ...) --}}
     @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            <div>{{ session('error') }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
         </div>
     @endif
 
     @yield('contenido')
 </main>
+
+<footer class="pie">
+    <div class="container text-center">
+        <i class="bi bi-car-front-fill" aria-hidden="true"></i>
+        AutoNova Motors · Servicio Automotriz
+    </div>
+</footer>
 
 {{-- El bundle incluye Popper, necesario para el carrusel, el menú y los alerts --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

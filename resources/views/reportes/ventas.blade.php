@@ -11,12 +11,15 @@
 @endphp
 
 @section('contenido')
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-        <h1 class="h3 mb-0">Reporte de ventas por mes</h1>
+    <div class="encabezado-pagina">
+        <div>
+            <span class="antetitulo">Administración</span>
+            <h1 class="h3">Reporte de ventas por mes</h1>
+        </div>
 
         {{-- Selector del período: se envía por GET (?meses=3|6|12) --}}
         <form method="GET" action="{{ route('reportes.ventas') }}" class="d-flex align-items-center gap-2">
-            <label for="meses" class="form-label mb-0">Mostrar</label>
+            <label for="meses" class="form-label mb-0"><i class="bi bi-calendar3" aria-hidden="true"></i> Mostrar</label>
             <select id="meses" name="meses" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
                 @foreach ($periodos as $p)
                     <option value="{{ $p }}" @selected($p === $meses)>últimos {{ $p }} meses</option>
@@ -29,36 +32,43 @@
     {{-- Resumen: mes actual contra el anterior --}}
     <div class="row g-3 mb-4">
         <div class="col-md-6">
-            <div class="card h-100">
+            <div class="card tarjeta-dato h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Ventas de {{ ucfirst($actual['mes']->translatedFormat('F Y')) }} (mes actual)</div>
-                    <div class="display-6 fw-bold">{{ $actual['ventas'] }}
-                        <span class="fs-6 fw-normal text-muted">{{ $actual['ventas'] === 1 ? 'vehículo' : 'vehículos' }}</span>
-                    </div>
-                    <div class="{{ $clase($actual['variacion_ventas']) }}">
-                        {{ $signo($actual['variacion_ventas']) }} frente a {{ $anterior ? ucfirst($anterior['mes']->translatedFormat('F')) : 'el mes anterior' }}
-                        ({{ $pct($actual['variacion_ventas_pct']) }})
+                    <span class="dato-icono"><i class="bi bi-car-front" aria-hidden="true"></i></span>
+                    <div>
+                        <div class="dato-etiqueta">Ventas de {{ ucfirst($actual['mes']->translatedFormat('F Y')) }} (mes actual)</div>
+                        <div class="dato-valor">{{ $actual['ventas'] }}
+                            <span class="fs-6 fw-normal text-muted">{{ $actual['ventas'] === 1 ? 'vehículo' : 'vehículos' }}</span>
+                        </div>
+                        <div class="small fw-semibold {{ $clase($actual['variacion_ventas']) }}">
+                            {{ $signo($actual['variacion_ventas']) }} frente a {{ $anterior ? ucfirst($anterior['mes']->translatedFormat('F')) : 'el mes anterior' }}
+                            ({{ $pct($actual['variacion_ventas_pct']) }})
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card h-100">
+            <div class="card tarjeta-dato h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Monto vendido en el mes actual</div>
-                    <div class="display-6 fw-bold">{{ $dinero($actual['monto']) }}</div>
-                    <div class="{{ $clase($actual['variacion_monto']) }}">
-                        {{ $signo($actual['variacion_monto']) }} U$S frente al mes anterior
-                        ({{ $pct($actual['variacion_monto_pct']) }})
+                    <span class="dato-icono"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
+                    <div>
+                        <div class="dato-etiqueta">Monto vendido en el mes actual</div>
+                        <div class="dato-valor">{{ $dinero($actual['monto']) }}</div>
+                        <div class="small fw-semibold {{ $clase($actual['variacion_monto']) }}">
+                            {{ $signo($actual['variacion_monto']) }} U$S frente al mes anterior
+                            ({{ $pct($actual['variacion_monto_pct']) }})
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped align-middle bg-white">
-            <thead class="table-dark">
+    {{-- La tabla va dentro de una tarjeta; en celular se desplaza de costado --}}
+    <div class="card tarjeta-tabla mb-3">
+        <table class="table tabla-autonova table-hover align-middle">
+            <thead>
                 <tr>
                     <th>Mes</th>
                     <th class="text-end">Ventas</th>
@@ -84,7 +94,7 @@
                     </tr>
                 @endforeach
             </tbody>
-            <tfoot class="table-light fw-bold">
+            <tfoot>
                 <tr>
                     <td>Total del período</td>
                     <td class="text-end">{{ $filas->sum('ventas') }}</td>
@@ -97,6 +107,7 @@
     </div>
 
     <p class="text-muted small">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
         Una venta es un lead en estado «Cerrado»; el mes es el de su última actualización y el monto es el precio publicado
         del vehículo (el sistema no guarda un precio de venta aparte). Cuando el mes anterior no tuvo ventas no hay porcentaje de comparación.
     </p>

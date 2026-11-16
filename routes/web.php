@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VehiculoController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,3 +25,8 @@ Route::post('/logout', [AuthController::class, 'destroy'])->middleware('auth')->
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas'])
     ->middleware('rol:admin')
     ->name('reportes.ventas');
+
+// Listado de usuarios y sus roles (solo lectura): solo Admin
+Route::get('/usuarios', [UsuarioController::class, 'index'])
+    ->middleware('rol:admin')
+    ->name('usuarios.index');
