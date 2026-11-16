@@ -54,17 +54,24 @@
                 <tr><th>Combustible</th><td>{{ \App\Models\Vehiculo::COMBUSTIBLES[$vehiculo->combustible] ?? $vehiculo->combustible }}</td></tr>
             </table>
 
-            <div class="d-flex gap-2">
-                <a href="{{ route('vehiculos.edit', $vehiculo) }}" class="btn btn-primary">Editar</a>
+            {{-- Editar: Empleado y Admin. Eliminar: solo Admin. Un visitante o cliente no ve ninguno de los dos. --}}
+            @auth
+                <div class="d-flex gap-2">
+                    @if (auth()->user()->puedeGestionar())
+                        <a href="{{ route('vehiculos.edit', $vehiculo) }}" class="btn btn-primary">Editar</a>
+                    @endif
 
-                {{-- Los formularios HTML no soportan DELETE: @method lo simula y @csrf protege el envío --}}
-                <form action="{{ route('vehiculos.destroy', $vehiculo) }}" method="POST"
-                      onsubmit="return confirm('¿Seguro que querés eliminar este vehículo? Esta acción no se puede deshacer.');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Eliminar</button>
-                </form>
-            </div>
+                    @if (auth()->user()->esAdmin())
+                        {{-- Los formularios HTML no soportan DELETE: @method lo simula y @csrf protege el envío --}}
+                        <form action="{{ route('vehiculos.destroy', $vehiculo) }}" method="POST"
+                              onsubmit="return confirm('¿Seguro que querés eliminar este vehículo? Esta acción no se puede deshacer.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                        </form>
+                    @endif
+                </div>
+            @endauth
         </div>
     </div>
 @endsection

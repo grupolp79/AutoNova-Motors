@@ -18,13 +18,44 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="menu">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('vehiculos.index') }}">Catálogo</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('vehiculos.create') }}">+ Nuevo vehículo</a>
-                </li>
+
+                @auth
+                    {{-- Alta de vehículos: Empleado y Admin --}}
+                    @if (auth()->user()->puedeGestionar())
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('vehiculos.create') }}">+ Nuevo vehículo</a>
+                        </li>
+                    @endif
+
+                    {{-- Reporte gerencial: solo Admin --}}
+                    @if (auth()->user()->esAdmin())
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('reportes.ventas') }}">Reporte de ventas</a>
+                        </li>
+                    @endif
+
+                    <li class="nav-item">
+                        <span class="navbar-text ms-lg-3 me-lg-2">
+                            {{ auth()->user()->name }}
+                            <span class="badge text-bg-secondary">{{ ucfirst(auth()->user()->rol) }}</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        {{-- Cerrar sesión es POST (con @csrf), no un link, para que no se pueda disparar desde otra página --}}
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
+                        </form>
+                    </li>
+                @else
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('login') }}">Iniciar sesión</a>
+                    </li>
+                @endauth
             </ul>
         </div>
     </div>

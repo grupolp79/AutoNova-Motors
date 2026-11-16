@@ -33,6 +33,22 @@ class UserFactory extends Factory
         ];
     }
 
+    // Estados para crear usuarios con rol: User::factory()->admin()->create()
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => ['rol' => 'admin']);
+    }
+
+    public function empleado(): static
+    {
+        return $this->state(fn (array $attributes) => ['rol' => 'empleado']);
+    }
+
+    public function cliente(): static
+    {
+        return $this->state(fn (array $attributes) => ['rol' => 'cliente']);
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */

@@ -20,6 +20,9 @@ class Vehiculo extends Model
         'transmision', 'combustible', 'estado', 'destacado',
     ];
 
+    // destacado es tinyint(1) en la base: con el cast llega como true/false y no como 1/0
+    protected $casts = ['destacado' => 'boolean'];
+
     // Opciones del select "Ordenar por". La clave '' es el orden por defecto (destacados primero).
     const ORDENES = [
         '' => 'Destacados primero',

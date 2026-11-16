@@ -97,13 +97,16 @@
                 @error('estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
-            <div class="col-12">
-                <div class="form-check">
-                    <input type="checkbox" id="destacado" name="destacado" value="1" class="form-check-input"
-                           @checked($destacado)>
-                    <label for="destacado" class="form-check-label">Destacado (aparece primero en el catálogo)</label>
+            {{-- Destacados: solo el Admin (RF-12). Para el Empleado el campo no se muestra. --}}
+            @if (auth()->user()?->esAdmin())
+                <div class="col-12">
+                    <div class="form-check">
+                        <input type="checkbox" id="destacado" name="destacado" value="1" class="form-check-input"
+                               @checked($destacado)>
+                        <label for="destacado" class="form-check-label">Destacado (aparece primero en el catálogo)</label>
+                    </div>
                 </div>
-            </div>
+            @endif
 
             <div class="col-12">
                 <label for="fotos" class="form-label">Fotos (una URL por línea)</label>

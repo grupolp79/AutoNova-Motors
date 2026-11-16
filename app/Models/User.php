@@ -48,6 +48,23 @@ class User extends Authenticatable
         ];
     }
 
+    // Roles del sistema: cliente, empleado y admin (columna users.rol)
+    public function esAdmin(): bool
+    {
+        return $this->rol === 'admin';
+    }
+
+    public function esEmpleado(): bool
+    {
+        return $this->rol === 'empleado';
+    }
+
+    // Empleado y Admin pueden dar de alta y modificar vehículos
+    public function puedeGestionar(): bool
+    {
+        return $this->esEmpleado() || $this->esAdmin();
+    }
+
     /**
      * Vehículos que el usuario marcó como favoritos.
      * Relación muchos a muchos por la tabla 'favoritos' (no tiene modelo propio).

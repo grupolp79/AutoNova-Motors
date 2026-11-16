@@ -5,12 +5,26 @@ namespace App\Http\Controllers;
 use App\Models\Vehiculo;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
-class VehiculoController extends Controller
+class VehiculoController extends Controller implements HasMiddleware
 {
+    /**
+     * Permisos por rol. El catálogo (index) y el detalle (show) son públicos (RF-02).
+     * Alta y modificación: Empleado y Admin (RF-01). Baja: solo Admin (RF-10).
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('rol:empleado,admin', only: ['create', 'store', 'edit', 'update']),
+            new Middleware('rol:admin', only: ['destroy']),
+        ];
+    }
+
     /**
      * Catálogo con búsqueda y filtros (por GET), 12 por página.
      * with('fotos') hace eager loading para no hacer una consulta por cada tarjeta (problema N+1).
@@ -87,24 +101,57 @@ class VehiculoController extends Controller
 
     public function destroy(Vehiculo $vehiculo)
     {
+        // Leads, turnos y reseñas usan restrictOnDelete: no se puede borrar un vehículo con historial.
+        // Se cuentan antes de intentar borrar para explicarle al usuario el motivo real.
+        $leads = $vehiculo->leads()->count();
+        $turnos = $vehiculo->turnos()->count();
+        $resenas = $vehiculo->resenas()->count();
+
+        if ($leads + $turnos + $resenas > 0) {
+            return redirect()->route('vehiculos.show', $vehiculo)
+                ->with('error', $this->mensajeNoSePuedeEliminar($vehiculo, $leads, $turnos, $resenas));
+        }
+
         try {
-            // Las fotos se borran solas por el cascadeOnDelete de la clave foránea
+            // Las fotos y los favoritos se borran solos por el cascadeOnDelete de la clave foránea
             $vehiculo->delete();
         } catch (QueryException $e) {
-            // 1451 = MySQL no deja borrar porque otra tabla lo referencia
-            // (leads, turnos y reseñas tienen restrictOnDelete para conservar el historial).
-            // El DELETE falla entero, así que tampoco se borran las fotos.
-            if (($e->errorInfo[1] ?? null) !== 1451) {
+            // Red de seguridad: si justo apareció un registro relacionado entre el conteo y el DELETE,
+            // la base lo rechaza. SQLSTATE 23000 = violación de integridad (MariaDB 1451, SQLite 19).
+            if (($e->errorInfo[0] ?? null) !== '23000') {
                 throw $e; // otro error de base: no se oculta
             }
 
             return redirect()->route('vehiculos.show', $vehiculo)
-                ->with('error', 'No se puede eliminar este vehículo porque tiene leads, turnos o reseñas asociados. '
-                    . 'Si ya no está a la venta, editalo y cambiá su estado a "vendido".');
+                ->with('error', 'No se puede eliminar este vehículo porque otros registros dependen de él.');
         }
 
         return redirect()->route('vehiculos.index')
             ->with('success', 'Vehículo eliminado correctamente.');
+    }
+
+    /**
+     * Arma el aviso cuando no se puede eliminar, diciendo qué registros lo impiden
+     * y qué hacer según el estado actual del vehículo.
+     */
+    private function mensajeNoSePuedeEliminar(Vehiculo $vehiculo, int $leads, int $turnos, int $resenas): string
+    {
+        $partes = array_filter([
+            $leads ? $leads . ($leads === 1 ? ' consulta (lead)' : ' consultas (leads)') : null,
+            $turnos ? $turnos . ($turnos === 1 ? ' turno' : ' turnos') : null,
+            $resenas ? $resenas . ($resenas === 1 ? ' reseña' : ' reseñas') : null,
+        ]);
+
+        // "A", "A y B" o "A, B y C"
+        $ultima = array_pop($partes);
+        $detalle = $partes ? implode(', ', $partes) . ' y ' . $ultima : $ultima;
+
+        $mensaje = "No se puede eliminar {$vehiculo->marca} {$vehiculo->modelo} porque tiene registros asociados: {$detalle}. "
+            . 'Se conservan como historial de la automotora.';
+
+        return $mensaje . ($vehiculo->estado === 'vendido'
+            ? ' Como ya figura como "Vendido", queda en el sistema como registro de la venta.'
+            : ' Si ya no está a la venta, cambiá su estado a "Vendido" desde Editar.');
     }
 
     /**
@@ -201,8 +248,12 @@ class VehiculoController extends Controller
             'lista_fotos.max' => 'Se permiten como máximo 255 fotos.',
         ]);
 
-        // El checkbox no se envía si está desmarcado, por eso se usa boolean()
-        $datos['destacado'] = $request->boolean('destacado');
+        // Solo el Admin puede marcar destacados (RF-12). Para el Empleado el campo ni se muestra:
+        // al crear queda en falso y al editar se conserva el valor que ya tenía.
+        // El checkbox no se envía si está desmarcado, por eso se usa boolean().
+        if ($request->user()?->esAdmin()) {
+            $datos['destacado'] = $request->boolean('destacado');
+        }
         unset($datos['fotos'], $datos['lista_fotos']);
 
         return [$datos, $urls];
