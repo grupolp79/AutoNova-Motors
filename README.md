@@ -67,7 +67,6 @@ En `.env`, completar los datos de la base (`DB_DATABASE`, `DB_USERNAME`, `DB_PAS
 
 ```
 php artisan migrate:fresh --seed
-php artisan storage:link
 php artisan serve
 ```
 
