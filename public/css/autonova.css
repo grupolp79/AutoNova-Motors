@@ -28,6 +28,14 @@
     --an-borde: #e3e6ec;
     --an-texto-suave: #6b7385;
 
+    /* Colores de los estados del vehículo: los mismos en todo el sitio */
+    --an-disponible: #1f9d55;
+    --an-disponible-suave: #e3f5ea;
+    --an-reservado: #d98a00;
+    --an-reservado-suave: #fdf1d9;
+    --an-vendido: #6b7385;
+    --an-vendido-suave: #eceef2;
+
     /* Degradé de fondo para cabeceras (login y, más adelante, el catálogo) */
     --an-degrade: radial-gradient(circle at 85% 15%, rgba(240, 97, 46, .35), transparent 45%),
                   linear-gradient(135deg, var(--an-tinta) 0%, var(--an-tinta-2) 100%);
@@ -35,8 +43,9 @@
     /* Bordes redondeados, sombras y transiciones */
     --an-radio: 14px;
     --an-radio-sm: 10px;
-    --an-sombra: 0 1px 2px rgba(19, 32, 58, .05), 0 4px 16px rgba(19, 32, 58, .06);
-    --an-sombra-hover: 0 10px 28px rgba(19, 32, 58, .14);
+    /* Sombra apenas visible en reposo; se "levanta" al pasar el mouse */
+    --an-sombra: 0 1px 2px rgba(19, 32, 58, .05);
+    --an-sombra-hover: 0 10px 28px rgba(19, 32, 58, .12);
     --an-transicion: .2s ease;
 
     /* Variables de Bootstrap que usa todo el sitio */
@@ -62,9 +71,35 @@ main {
     flex: 1 0 auto;
 }
 
-h1, h2, h3, .h1, .h2, .h3 {
-    font-weight: 800;
+/* Títulos grandes y livianos; los números importantes (precio, km, totales) van en negrita */
+h1, h2, .h1, .h2 {
+    font-weight: 300;
     letter-spacing: -.02em;
+}
+
+h3, .h3 {
+    font-weight: 400;
+    letter-spacing: -.01em;
+}
+
+h1, .h1 {
+    font-size: calc(1.6rem + 1.2vw);
+}
+
+@media (min-width: 1200px) {
+    h1, .h1 {
+        font-size: 2.6rem;
+    }
+}
+
+/* Foco visible cuando se navega con el teclado (Tab); con el mouse no aparece */
+a:focus-visible,
+.btn:focus-visible,
+.nav-link:focus-visible,
+.page-link:focus-visible {
+    outline: 3px solid var(--an-acento);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 
 .text-muted {
@@ -230,6 +265,26 @@ h1, h2, h3, .h1, .h2, .h3 {
     text-transform: uppercase;
     color: var(--an-acento-oscuro);
     margin-bottom: .25rem;
+}
+
+/* Etiqueta de estado del vehículo (disponible / reservado / vendido) */
+.badge-estado {
+    font-weight: 600;
+    border-radius: 999px;
+    padding: .4em .8em;
+}
+
+.estado-disponible { background: var(--an-disponible-suave); color: var(--an-disponible); }
+.estado-reservado  { background: var(--an-reservado-suave);  color: #9a6200; }
+.estado-vendido    { background: var(--an-vendido-suave);    color: var(--an-vendido); }
+
+/* Etiqueta de destacado: usa el color de acento */
+.badge-destacado {
+    font-weight: 600;
+    border-radius: 999px;
+    padding: .4em .8em;
+    background: var(--an-acento);
+    color: #fff;
 }
 
 /* Tarjeta con un número grande (reporte, usuarios) */

@@ -14,7 +14,7 @@
     <div class="encabezado-pagina">
         <div>
             <span class="antetitulo">Administración</span>
-            <h1 class="h3">Reporte de ventas por mes</h1>
+            <h1>Reporte de ventas por mes</h1>
         </div>
 
         {{-- Selector del período: se envía por GET (?meses=3|6|12) --}}

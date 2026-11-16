@@ -15,7 +15,7 @@
     <div class="encabezado-pagina">
         <div>
             <span class="antetitulo">Administración</span>
-            <h1 class="h3">Usuarios del sistema</h1>
+            <h1>Usuarios del sistema</h1>
         </div>
     </div>
 
