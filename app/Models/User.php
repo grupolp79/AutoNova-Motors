@@ -75,4 +75,10 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Vehiculo::class, 'favoritos', 'usuario_id', 'vehiculo_id');
     }
+
+    // Consultas (leads) que hizo el usuario cuando es cliente. La clave foránea es usuario_id.
+    public function consultas()
+    {
+        return $this->hasMany(Lead::class, 'usuario_id');
+    }
 }

@@ -11,6 +11,8 @@ return [
     'url' => 'El campo :attribute debe ser una URL válida.',
     'in' => 'El valor elegido en :attribute no es válido.',
     'array' => 'El campo :attribute debe ser una lista.',
+    'date' => 'El campo :attribute debe ser una fecha válida.',
+    'before_or_equal' => 'El campo :attribute no puede ser posterior a :date.',
     'boolean' => 'El campo :attribute debe ser verdadero o falso.',
 
     'max' => [
@@ -37,5 +39,9 @@ return [
         'fotos' => 'fotos',
         'email' => 'correo electrónico',
         'password' => 'contraseña',
+        'mensaje' => 'mensaje',
+        'tipo' => 'tipo de contacto',
+        'fecha' => 'fecha',
+        'comentario' => 'comentario',
     ],
 ];

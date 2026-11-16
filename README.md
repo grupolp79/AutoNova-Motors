@@ -86,13 +86,16 @@ La aplicación queda en http://127.0.0.1:8000.
 
 ## Acceso y roles
 
-El catálogo es público. Para gestionar vehículos hay que iniciar sesión (`/login`). Los permisos dependen del rol:
+El catálogo es público. Para consultar por un vehículo o gestionar el sistema hay que iniciar sesión (`/login`). Los permisos dependen del rol:
 
 | Rol | Qué puede hacer |
 |---|---|
-| Visitante (sin sesión) y Cliente | Ver el catálogo, usar los filtros y ver el detalle de cada vehículo |
-| Empleado | Lo anterior, más dar de alta y modificar vehículos |
-| Admin | Lo anterior, más eliminar vehículos sin historial, marcar vehículos como destacados y ver el reporte de ventas (`/reportes/ventas`) |
+| Visitante (sin sesión) | Ver el catálogo, usar los filtros y ver el detalle de cada vehículo |
+| Cliente | Lo anterior, más enviar consultas por un vehículo y seguir el estado de las suyas (`/mis-consultas`) |
+| Empleado | Ver el catálogo, dar de alta y modificar vehículos y manejar las consultas de los clientes (`/consultas`): avanzarlas por el ciclo Nuevo → Contactado → Negociando → Cerrado y registrar llamadas, correos y visitas |
+| Admin | Lo del Empleado, más eliminar vehículos sin historial, marcar vehículos como destacados, ver el reporte de ventas (`/reportes/ventas`) y la lista de usuarios (`/usuarios`) |
+
+Al pasar una consulta a Negociando el vehículo queda Reservado, y al cerrarla queda Vendido. Esas cerradas son las ventas que cuenta el reporte.
 
 Cuentas de ejemplo (las crea `database/seeders/UsuarioSeeder.php`, que también indica la contraseña de prueba): `admin@autonova.test`, `empleado1@autonova.test` y `cliente1@correo.test`.
 

@@ -46,6 +46,23 @@
                         </li>
                     @endif
 
+                    {{-- Cliente: sus consultas. Empleado y Admin: bandeja de consultas, con el aviso de las nuevas --}}
+                    @if (auth()->user()->rol === 'cliente')
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('consultas.mias')) active @endif"
+                               href="{{ route('consultas.mias') }}">Mis consultas</a>
+                        </li>
+                    @elseif (auth()->user()->puedeGestionar())
+                        @php $nuevas = \App\Models\Lead::where('estado', 'nuevo')->count(); @endphp
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('consultas.*')) active @endif"
+                               href="{{ route('consultas.index') }}">
+                                Consultas
+                                @if ($nuevas > 0) <span class="badge rounded-pill text-bg-danger">{{ $nuevas }}</span> @endif
+                            </a>
+                        </li>
+                    @endif
+
                     {{-- Reporte gerencial y listado de usuarios: solo Admin --}}
                     @if (auth()->user()->esAdmin())
                         <li class="nav-item">

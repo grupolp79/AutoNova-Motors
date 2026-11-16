@@ -54,6 +54,9 @@
                 <tr><th>Combustible</th><td>{{ \App\Models\Vehiculo::COMBUSTIBLES[$vehiculo->combustible] ?? $vehiculo->combustible }}</td></tr>
             </table>
 
+            {{-- Consultar por el vehículo (RF-03): el bloque cambia según el rol de quien mira --}}
+            @include('consultas._cta')
+
             {{-- Editar: Empleado y Admin. Eliminar: solo Admin. Un visitante o cliente no ve ninguno de los dos. --}}
             @auth
                 <div class="d-flex gap-2">

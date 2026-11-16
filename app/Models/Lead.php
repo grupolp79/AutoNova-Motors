@@ -5,13 +5,17 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Lead extends Model
 {
     // Ciclo de vida del lead. Las claves coinciden con el enum de la migración.
     const ESTADOS = ['nuevo' => 'Nuevo', 'contactado' => 'Contactado', 'negociando' => 'Negociando', 'cerrado' => 'Cerrado'];
 
-    protected $fillable = ['usuario_id', 'vehiculo_id', 'estado'];
+    // Cada estado avanza solo al siguiente: no se puede saltear pasos ni volver atrás. 'cerrado' es el final.
+    const SIGUIENTE = ['nuevo' => 'contactado', 'contactado' => 'negociando', 'negociando' => 'cerrado'];
+
+    protected $fillable = ['usuario_id', 'vehiculo_id', 'estado', 'mensaje'];
 
     // El cliente que hizo la consulta (la FK se llama usuario_id, no user_id)
     public function cliente()
@@ -27,6 +31,56 @@ class Lead extends Model
     public function interacciones()
     {
         return $this->hasMany(Interaccion::class)->orderBy('fecha');
+    }
+
+    // Un lead cerrado es una venta concretada: queda como historial y no se modifica más
+    public function estaCerrado(): bool
+    {
+        return $this->estado === 'cerrado';
+    }
+
+    /** Estado al que pasa si se lo avanza (null si ya está cerrado). */
+    public function siguienteEstado(): ?string
+    {
+        return self::SIGUIENTE[$this->estado] ?? null;
+    }
+
+    /**
+     * Pasa el lead al estado siguiente y mantiene coherente el estado del vehículo (RF-06):
+     *   negociando -> el vehículo queda 'reservado' (si estaba disponible)
+     *   cerrado    -> el vehículo queda 'vendido'
+     * Todo en una transacción: si algo falla no queda el lead avanzado con el vehículo sin actualizar.
+     * No se puede avanzar un lead si el vehículo ya figura como vendido (evita vender dos veces el mismo auto).
+     *
+     * Devuelve null si salió bien, o el texto del motivo si no se pudo.
+     */
+    public function avanzar(): ?string
+    {
+        $siguiente = $this->siguienteEstado();
+        if ($siguiente === null) {
+            return 'La consulta ya está cerrada.';
+        }
+
+        return DB::transaction(function () use ($siguiente) {
+            // lockForUpdate bloquea la fila del vehículo: dos empleados no pueden cerrar la venta a la vez
+            $vehiculo = Vehiculo::lockForUpdate()->findOrFail($this->vehiculo_id);
+
+            if ($vehiculo->estado === 'vendido') {
+                return 'El vehículo ya figura como vendido, así que esta consulta no se puede avanzar.';
+            }
+
+            $this->estado = $siguiente;
+            $this->save();
+
+            if ($siguiente === 'negociando' && $vehiculo->estado === 'disponible') {
+                $vehiculo->update(['estado' => 'reservado']);
+            }
+            if ($siguiente === 'cerrado') {
+                $vehiculo->update(['estado' => 'vendido']);
+            }
+
+            return null;
+        });
     }
 
     /**

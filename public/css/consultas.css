@@ -1,0 +1,108 @@
+/*
+ * Estilos de las pantallas de consultas (leads). Se carga solo en esas vistas con @push('estilos').
+ * Usa las variables de autonova.css (--an-*), así que hereda la paleta del sitio.
+ */
+
+/* Etiqueta del estado de una consulta */
+.badge-lead {
+    font-weight: 600;
+    border-radius: 999px;
+    padding: .4em .8em;
+}
+.lead-nuevo { background: #e4ecff; color: #2a4fb8; }
+.lead-contactado { background: #e0f4f8; color: #17798c; }
+.lead-negociando { background: var(--an-reservado-suave); color: var(--an-reservado); }
+.lead-cerrado { background: var(--an-disponible-suave); color: var(--an-disponible); }
+
+/* Barra de progreso: Nuevo -> Contactado -> Negociando -> Cerrado */
+.progreso-lead {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: .25rem;
+}
+.progreso-lead .paso {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    font-size: .8rem;
+    color: var(--an-texto-suave);
+}
+/* Línea que une cada punto con el siguiente */
+.progreso-lead .paso:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: calc(50% + 16px);
+    right: calc(-50% + 16px);
+    height: 2px;
+    background: var(--an-borde);
+}
+.progreso-lead .paso.hecho:not(:last-child)::after { background: var(--an-acento); }
+.progreso-lead .punto {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--an-borde);
+    background: var(--an-superficie);
+    font-weight: 700;
+    font-size: .8rem;
+}
+.progreso-lead .paso.hecho .punto { background: var(--an-acento); border-color: var(--an-acento); color: #fff; }
+.progreso-lead .paso.actual .punto { border-color: var(--an-acento); color: var(--an-acento); box-shadow: 0 0 0 4px var(--an-acento-suave); }
+.progreso-lead .paso.actual .paso-texto { color: var(--an-tinta); font-weight: 700; }
+.progreso-lead .paso-texto { display: block; margin-top: .3rem; }
+
+/* Miniatura del vehículo en las listas */
+.miniatura-vehiculo {
+    width: 120px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: .6rem;
+    background: var(--an-vendido-suave);
+}
+
+/* Historial de contactos (línea de tiempo vertical) */
+.linea-tiempo { list-style: none; margin: 0; padding: 0; }
+.linea-tiempo li {
+    position: relative;
+    padding: 0 0 1.25rem 3rem;
+}
+.linea-tiempo li:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    left: 17px;
+    top: 36px;
+    bottom: 0;
+    width: 2px;
+    background: var(--an-borde);
+}
+.linea-tiempo .icono-contacto {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--an-acento-suave);
+    color: var(--an-acento-oscuro);
+}
+.linea-tiempo .contacto-titulo { font-weight: 600; color: var(--an-tinta); }
+.linea-tiempo .contacto-fecha { font-size: .8rem; color: var(--an-texto-suave); }
+
+/* Bloque de consulta en el detalle del vehículo */
+.consulta-cta {
+    background: var(--an-superficie);
+    border: 1px solid var(--an-borde);
+    border-radius: 1rem;
+    padding: 1.1rem 1.25rem;
+    margin: 1rem 0;
+}
+.consulta-cta h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: .35rem; }
