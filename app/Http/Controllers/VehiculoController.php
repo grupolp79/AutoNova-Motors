@@ -1,0 +1,220 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Vehiculo;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+
+class VehiculoController extends Controller
+{
+    /**
+     * Catálogo con búsqueda y filtros (por GET), 12 por página.
+     * with('fotos') hace eager loading para no hacer una consulta por cada tarjeta (problema N+1).
+     */
+    public function index(Request $request)
+    {
+        $filtros = $this->filtrosValidos($request);
+
+        $vehiculos = Vehiculo::with('fotos')
+            ->filtrar($filtros)                 // scopeFiltrar del modelo
+            ->ordenar($filtros['orden'] ?? '')  // scopeOrdenar del modelo
+            ->paginate(12)
+            ->withQueryString();                // los links de páginas conservan los filtros
+
+        return view('vehiculos.index', [
+            'vehiculos' => $vehiculos,
+            'filtros' => $filtros,
+            'opciones' => $this->opcionesFiltros(),
+        ]);
+    }
+
+    public function create()
+    {
+        // Se pasa un vehículo vacío para que el formulario compartido funcione igual que en editar
+        $vehiculo = new Vehiculo(['estado' => 'disponible']);
+
+        return view('vehiculos.create', compact('vehiculo'));
+    }
+
+    public function store(Request $request)
+    {
+        [$datos, $urls] = $this->validar($request);
+
+        // Transacción: si falla al guardar las fotos, no queda el vehículo a medias
+        $vehiculo = DB::transaction(function () use ($datos, $urls) {
+            $vehiculo = Vehiculo::create($datos);
+            $this->guardarFotos($vehiculo, $urls);
+            return $vehiculo;
+        });
+
+        return redirect()->route('vehiculos.show', $vehiculo)
+            ->with('success', 'Vehículo creado correctamente.');
+    }
+
+    public function show(Vehiculo $vehiculo)
+    {
+        // Route model binding: Laravel busca el vehículo por id (404 si no existe)
+        $vehiculo->load('fotos');
+
+        return view('vehiculos.show', compact('vehiculo'));
+    }
+
+    public function edit(Vehiculo $vehiculo)
+    {
+        $vehiculo->load('fotos');
+
+        return view('vehiculos.edit', compact('vehiculo'));
+    }
+
+    public function update(Request $request, Vehiculo $vehiculo)
+    {
+        [$datos, $urls] = $this->validar($request);
+
+        DB::transaction(function () use ($vehiculo, $datos, $urls) {
+            $vehiculo->update($datos);
+            // Las fotos se reemplazan: se borran las anteriores y se cargan las del textarea
+            $vehiculo->fotos()->delete();
+            $this->guardarFotos($vehiculo, $urls);
+        });
+
+        return redirect()->route('vehiculos.show', $vehiculo)
+            ->with('success', 'Vehículo actualizado correctamente.');
+    }
+
+    public function destroy(Vehiculo $vehiculo)
+    {
+        try {
+            // Las fotos se borran solas por el cascadeOnDelete de la clave foránea
+            $vehiculo->delete();
+        } catch (QueryException $e) {
+            // 1451 = MySQL no deja borrar porque otra tabla lo referencia
+            // (leads, turnos y reseñas tienen restrictOnDelete para conservar el historial).
+            // El DELETE falla entero, así que tampoco se borran las fotos.
+            if (($e->errorInfo[1] ?? null) !== 1451) {
+                throw $e; // otro error de base: no se oculta
+            }
+
+            return redirect()->route('vehiculos.show', $vehiculo)
+                ->with('error', 'No se puede eliminar este vehículo porque tiene leads, turnos o reseñas asociados. '
+                    . 'Si ya no está a la venta, editalo y cambiá su estado a "vendido".');
+        }
+
+        return redirect()->route('vehiculos.index')
+            ->with('success', 'Vehículo eliminado correctamente.');
+    }
+
+    /**
+     * Valida los parámetros GET del catálogo. A diferencia del formulario de alta,
+     * acá no se muestran errores: valid() devuelve solo los parámetros que pasaron
+     * la validación y los inválidos se ignoran (como si no hubieran venido).
+     */
+    private function filtrosValidos(Request $request): array
+    {
+        $reglas = [
+            'q' => 'nullable|string|max:100',
+            'precio_min' => 'nullable|numeric|min:0',
+            'precio_max' => 'nullable|numeric|min:0',
+            'km_min' => 'nullable|integer|min:0',
+            'km_max' => 'nullable|integer|min:0',
+            'condicion' => 'nullable|in:0km,usado',
+            'anio_desde' => 'nullable|integer|min:1900|max:2100',
+            'anio_hasta' => 'nullable|integer|min:1900|max:2100',
+            // Si un valor del grupo es inválido, se ignora el grupo entero
+            'estado' => 'array',
+            'estado.*' => 'in:' . implode(',', array_keys(Vehiculo::ESTADOS)),
+            'marca' => 'array',
+            'marca.*' => 'string|max:60',
+            'transmision' => 'array',
+            'transmision.*' => 'in:' . implode(',', array_keys(Vehiculo::TRANSMISIONES)),
+            'combustible' => 'array',
+            'combustible.*' => 'in:' . implode(',', array_keys(Vehiculo::COMBUSTIBLES)),
+            'destacados' => 'nullable|in:1',
+            'orden' => 'nullable|in:' . implode(',', array_filter(array_keys(Vehiculo::ORDENES))),
+        ];
+
+        $validos = Validator::make($request->query(), $reglas)->valid();
+
+        // Solo se quedan los parámetros conocidos y que tienen valor
+        return array_filter(
+            Arr::only($validos, array_keys($reglas)),
+            fn ($valor) => $valor !== null && $valor !== ''
+        );
+    }
+
+    /**
+     * Opciones para armar el panel de filtros, sacadas de la base:
+     * marcas y años que existen, y límites reales de precio y kilometraje.
+     */
+    private function opcionesFiltros(): array
+    {
+        // Los límites se redondean al paso de la barra (500 y 1.000) para que las bolitas caigan justo
+        $precioMin = floor((Vehiculo::min('precio') ?? 0) / 500) * 500;
+        $precioMax = ceil((Vehiculo::max('precio') ?? 0) / 500) * 500;
+        $kmMin = floor((Vehiculo::min('kilometraje') ?? 0) / 1000) * 1000;
+        $kmMax = ceil((Vehiculo::max('kilometraje') ?? 0) / 1000) * 1000;
+
+        return [
+            'marcas' => Vehiculo::distinct()->orderBy('marca')->pluck('marca'),
+            'anios' => Vehiculo::distinct()->orderByDesc('anio')->pluck('anio'),
+            // noUiSlider falla si mínimo y máximo son iguales (ej. base vacía), por eso se separan un paso
+            'precio' => [$precioMin, max($precioMax, $precioMin + 500)],
+            'km' => [$kmMin, max($kmMax, $kmMin + 1000)],
+        ];
+    }
+
+    /**
+     * Valida los datos del formulario. Devuelve los datos del vehículo y la lista de URLs de fotos.
+     */
+    private function validar(Request $request): array
+    {
+        // Se separa el textarea en líneas, se sacan espacios y líneas vacías
+        $urls = collect(preg_split('/\r\n|\r|\n/', (string) $request->input('fotos')))
+            ->map(fn ($linea) => trim($linea))
+            ->filter()
+            ->values()
+            ->all();
+
+        // Se agrega la lista al request para validarla junto con el resto de los campos
+        $request->merge(['lista_fotos' => $urls]);
+
+        $datos = $request->validate([
+            'marca' => 'required|string|max:60',
+            'modelo' => 'required|string|max:60',
+            'anio' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'precio' => 'required|numeric|min:0|max:99999999.99',
+            'kilometraje' => 'required|integer|min:0',
+            // Solo se aceptan los valores de los enum (las claves de las constantes del modelo)
+            'transmision' => 'required|in:' . implode(',', array_keys(Vehiculo::TRANSMISIONES)),
+            'combustible' => 'required|in:' . implode(',', array_keys(Vehiculo::COMBUSTIBLES)),
+            'estado' => 'required|in:' . implode(',', array_keys(Vehiculo::ESTADOS)),
+            'fotos' => 'nullable|string',
+            // Cada línea tiene que ser una URL http/https (la columna 'ruta' admite hasta 255 caracteres)
+            'lista_fotos' => 'array|max:255',
+            'lista_fotos.*' => 'url:http,https|max:255',
+        ], [
+            'lista_fotos.*.url' => 'La línea :position de fotos no es una URL válida.',
+            'lista_fotos.*.max' => 'La línea :position de fotos es demasiado larga (máx. 255 caracteres).',
+            'lista_fotos.max' => 'Se permiten como máximo 255 fotos.',
+        ]);
+
+        // El checkbox no se envía si está desmarcado, por eso se usa boolean()
+        $datos['destacado'] = $request->boolean('destacado');
+        unset($datos['fotos'], $datos['lista_fotos']);
+
+        return [$datos, $urls];
+    }
+
+    /**
+     * Crea una foto por cada URL; el orden es el de las líneas del textarea.
+     */
+    private function guardarFotos(Vehiculo $vehiculo, array $urls): void
+    {
+        foreach ($urls as $i => $url) {
+            $vehiculo->fotos()->create(['ruta' => $url, 'orden' => $i]);
+        }
+    }
+}
