@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConsultaController;
+use App\Http\Controllers\FavoritoController;
 use App\Http\Controllers\InteraccionController;
+use App\Http\Controllers\PrecioReferenciaController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UsuarioController;
@@ -46,3 +48,12 @@ Route::get('/consultas', [ConsultaController::class, 'index'])->name('consultas.
 Route::get('/consultas/{consulta}', [ConsultaController::class, 'show'])->name('consultas.show');
 Route::patch('/consultas/{consulta}/estado', [ConsultaController::class, 'avanzar'])->name('consultas.avanzar');
 Route::post('/consultas/{consulta}/interacciones', [InteraccionController::class, 'store'])->name('consultas.interacciones.store');
+
+// Precios de referencia (RF-04): tabla de consulta, solo lectura, para Empleado y Admin.
+// El permiso por rol está en PrecioReferenciaController::middleware().
+Route::get('/precios-referencia', [PrecioReferenciaController::class, 'index'])->name('precios.index');
+
+// Favoritos (RF-11): solo el Cliente. El permiso por rol está en FavoritoController::middleware().
+Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
+Route::post('/vehiculos/{vehiculo}/favorito', [FavoritoController::class, 'store'])->name('favoritos.store');
+Route::delete('/vehiculos/{vehiculo}/favorito', [FavoritoController::class, 'destroy'])->name('favoritos.destroy');

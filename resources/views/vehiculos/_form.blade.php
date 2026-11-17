@@ -108,6 +108,20 @@
                 </div>
             @endif
 
+            {{-- Mini descripción (opcional). Si se deja vacía, el catálogo muestra un texto armado con los datos --}}
+            <div class="col-12">
+                <label for="descripcion" class="form-label">Descripción corta (opcional)</label>
+                <textarea id="descripcion" name="descripcion" rows="3" maxlength="{{ \App\Models\Vehiculo::DESCRIPCION_MAX }}"
+                          class="form-control @error('descripcion') is-invalid @enderror"
+                          placeholder="Por ejemplo: SUV cómoda y alta, con el service al día. Ideal para la familia.">{{ old('descripcion', $vehiculo->descripcion) }}</textarea>
+                <div class="form-text d-flex justify-content-between gap-2">
+                    <span>Se ve resumida en el catálogo y completa en el detalle.</span>
+                    {{-- Contador: lo actualiza el script de abajo mientras se escribe --}}
+                    <span><span id="contadorDescripcion">{{ mb_strlen(old('descripcion', $vehiculo->descripcion) ?? '') }}</span>/{{ \App\Models\Vehiculo::DESCRIPCION_MAX }}</span>
+                </div>
+                @error('descripcion') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
             <div class="col-12">
                 <label for="fotos" class="form-label">Fotos (una URL por línea)</label>
                 <textarea id="fotos" name="fotos" rows="5"
@@ -121,3 +135,14 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+    <script>
+        // Contador de caracteres de la descripción: se actualiza con cada tecla
+        (function () {
+            const campo = document.getElementById('descripcion');
+            const contador = document.getElementById('contadorDescripcion');
+            campo.addEventListener('input', () => contador.textContent = campo.value.length);
+        })();
+    </script>
+@endpush

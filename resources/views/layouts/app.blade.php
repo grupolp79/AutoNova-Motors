@@ -52,6 +52,10 @@
                             <a class="nav-link @if (request()->routeIs('consultas.mias')) active @endif"
                                href="{{ route('consultas.mias') }}">Mis consultas</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('favoritos.index')) active @endif"
+                               href="{{ route('favoritos.index') }}">Favoritos</a>
+                        </li>
                     @elseif (auth()->user()->puedeGestionar())
                         @php $nuevas = \App\Models\Lead::where('estado', 'nuevo')->count(); @endphp
                         <li class="nav-item">
@@ -60,6 +64,14 @@
                                 Consultas
                                 @if ($nuevas > 0) <span class="badge rounded-pill text-bg-danger">{{ $nuevas }}</span> @endif
                             </a>
+                        </li>
+                    @endif
+
+                    {{-- Precios de referencia (RF-04): Empleado y Admin --}}
+                    @if (auth()->user()->puedeGestionar())
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('precios.index')) active @endif"
+                               href="{{ route('precios.index') }}">Precios de referencia</a>
                         </li>
                     @endif
 

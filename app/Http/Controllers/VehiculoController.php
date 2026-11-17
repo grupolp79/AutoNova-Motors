@@ -238,6 +238,8 @@ class VehiculoController extends Controller implements HasMiddleware
             'transmision' => 'required|in:' . implode(',', array_keys(Vehiculo::TRANSMISIONES)),
             'combustible' => 'required|in:' . implode(',', array_keys(Vehiculo::COMBUSTIBLES)),
             'estado' => 'required|in:' . implode(',', array_keys(Vehiculo::ESTADOS)),
+            // Mini descripción opcional; si viene vacía se guarda null (middleware ConvertEmptyStringsToNull)
+            'descripcion' => 'nullable|string|max:' . Vehiculo::DESCRIPCION_MAX,
             'fotos' => 'nullable|string',
             // Cada línea tiene que ser una URL http/https (la columna 'ruta' admite hasta 255 caracteres)
             'lista_fotos' => 'array|max:255',
@@ -246,6 +248,7 @@ class VehiculoController extends Controller implements HasMiddleware
             'lista_fotos.*.url' => 'La línea :position de fotos no es una URL válida.',
             'lista_fotos.*.max' => 'La línea :position de fotos es demasiado larga (máx. 255 caracteres).',
             'lista_fotos.max' => 'Se permiten como máximo 255 fotos.',
+            'descripcion.max' => 'La descripción puede tener hasta :max caracteres. Acortala un poco y volvé a guardar.',
         ]);
 
         // Solo el Admin puede marcar destacados (RF-12). Para el Empleado el campo ni se muestra:

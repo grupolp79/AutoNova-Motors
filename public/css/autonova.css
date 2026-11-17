@@ -13,6 +13,9 @@
  *  7. Mensajes (alerts)
  *  8. Login y página de error
  *  9. Pie de página
+ * 10. Catálogo (cabecera, buscador, filtros y tarjetas)
+ * 11. Detalle del vehículo
+ * 12. Vista de gestión (Empleado y Admin)
  */
 
 /* ===== 1. Variables ===== */
@@ -466,6 +469,477 @@ a:focus-visible,
 
 .pie .bi {
     color: var(--an-acento);
+}
+
+/* ===== 10. Catálogo ===== */
+/* Cabecera con degradé, título y buscador */
+.hero-catalogo {
+    background: var(--an-degrade);
+    color: #fff;
+    border-radius: 20px;
+    padding: clamp(1.75rem, 4vw, 3.25rem) clamp(1.25rem, 4vw, 3rem);
+    margin-bottom: 2rem;
+}
+
+.hero-catalogo h1 {
+    color: #fff;
+    margin-bottom: .5rem;
+}
+
+.hero-frase {
+    color: rgba(255, 255, 255, .8);
+    font-size: 1.1rem;
+    max-width: 36rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Versión compacta para la vista de gestión */
+.hero-catalogo.hero-compacto {
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.hero-compacto h1 {
+    font-size: 1.6rem;
+    margin-bottom: .9rem;
+}
+
+/* Buscador en forma de pastilla blanca */
+.buscador {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 40rem;
+    background: #fff;
+    border-radius: 999px;
+    padding: .35rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+    transition: box-shadow var(--an-transicion);
+}
+
+/* El foco se marca en toda la pastilla y no solo en el input */
+.buscador:focus-within {
+    box-shadow: 0 0 0 4px rgba(240, 97, 46, .45), 0 8px 24px rgba(0, 0, 0, .18);
+}
+
+.buscador > .bi {
+    padding-left: .9rem;
+    color: var(--an-texto-suave);
+}
+
+.buscador input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    padding: .55rem .4rem;
+    font-size: 1rem;
+    color: var(--an-tinta);
+    outline: none;
+}
+
+.buscador .btn {
+    border-radius: 999px;
+    padding-inline: 1.4rem;
+}
+
+/* Panel de filtros: grupos separados por una línea fina */
+.panel-filtros {
+    padding: 1.25rem;
+}
+
+.filtro-grupo {
+    padding: 1rem 0;
+    border-top: 1px solid var(--an-borde);
+}
+
+.filtro-titulo {
+    display: block;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--an-texto-suave);
+    margin-bottom: .6rem;
+}
+
+/* noUiSlider con los colores del sitio */
+.noUi-target {
+    height: 6px;
+    border: 0;
+    box-shadow: none;
+    background: var(--an-borde);
+}
+
+.noUi-connect {
+    background: var(--an-acento);
+}
+
+.noUi-horizontal .noUi-handle {
+    width: 20px;
+    height: 20px;
+    right: -10px;
+    top: -7px;
+    border-radius: 50%;
+    border: 3px solid var(--an-acento);
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(19, 32, 58, .2);
+    cursor: grab;
+}
+
+.noUi-handle::before,
+.noUi-handle::after {
+    display: none;
+}
+
+.noUi-handle:focus-visible {
+    outline: 3px solid var(--an-tinta);
+    outline-offset: 2px;
+}
+
+/* Tarjeta de vehículo: la foto es la protagonista */
+.tarjeta-vehiculo {
+    overflow: hidden;
+    transition: box-shadow var(--an-transicion), transform var(--an-transicion);
+}
+
+.tarjeta-vehiculo:hover {
+    box-shadow: var(--an-sombra-hover);
+    transform: translateY(-3px);
+}
+
+.tarjeta-foto {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--an-vendido-suave);
+}
+
+.tarjeta-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .25s ease;
+}
+
+/* Zoom suave de la foto al pasar el mouse */
+.tarjeta-vehiculo:hover .tarjeta-foto img {
+    transform: scale(1.05);
+}
+
+/* Lugar de la foto cuando el vehículo no tiene ninguna */
+.sin-foto {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    color: var(--an-texto-suave);
+}
+
+.sin-foto .bi {
+    font-size: 2rem;
+}
+
+/* Estado (izquierda) y destacado (derecha) sobre la foto */
+.tarjeta-etiquetas {
+    position: absolute;
+    top: .75rem;
+    left: .75rem;
+    right: .75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .4rem;
+}
+
+.tarjeta-etiquetas .badge {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+}
+
+.tarjeta-vehiculo .card-body {
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+}
+
+.tarjeta-titulo {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin-bottom: .35rem;
+}
+
+/* Mini descripción: como máximo 2 líneas, con "..." al final */
+.tarjeta-descripcion {
+    font-size: .9rem;
+    color: var(--an-texto-suave);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    min-height: 3em;
+    margin-bottom: .9rem;
+}
+
+/* Fila de datos con íconos (año, km, caja, combustible) */
+.datos-fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem .9rem;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+    font-size: .82rem;
+}
+
+.datos-fila .bi {
+    color: var(--an-texto-suave);
+    margin-right: .25rem;
+}
+
+/* Precio: después de la foto, lo más visible */
+.precio {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+}
+
+.tarjeta-pie {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+/* Mensaje amable cuando no hay resultados */
+.estado-vacio {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.estado-vacio > .bi {
+    font-size: 2.5rem;
+    color: var(--an-acento);
+}
+
+/* ===== 11. Detalle del vehículo ===== */
+.enlace-volver {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-weight: 600;
+    color: var(--an-texto-suave);
+    text-decoration: none;
+    margin-bottom: 1rem;
+}
+
+.enlace-volver:hover {
+    color: var(--an-tinta);
+}
+
+.carrusel-detalle {
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--an-tinta);
+}
+
+/* Alto de la foto: crece con la pantalla, entre 240 y 480 px */
+.carrusel-detalle .carousel-item img,
+.foto-vacia {
+    width: 100%;
+    height: clamp(240px, 42vw, 480px);
+    object-fit: cover;
+}
+
+.foto-vacia {
+    border-radius: 20px;
+    background: var(--an-vendido-suave);
+}
+
+.precio-detalle {
+    font-size: clamp(2rem, 1.5rem + 1.5vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+}
+
+.detalle-descripcion {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+}
+
+/* Grilla de tarjetitas con los datos del vehículo */
+.datos-grilla {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+}
+
+.dato-mini {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    background: var(--an-superficie);
+    border: 1px solid var(--an-borde);
+    border-radius: var(--an-radio-sm);
+    padding: .8rem 1rem;
+}
+
+.dato-mini .bi {
+    font-size: 1.25rem;
+    color: var(--an-acento-oscuro);
+}
+
+.dato-mini-etiqueta {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--an-texto-suave);
+}
+
+.dato-mini-valor {
+    font-weight: 700;
+}
+
+/* ===== 12. Vista de gestión (Empleado y Admin) ===== */
+/* Cada estado define su color; lo usan la franja de la tarjeta y los totales */
+.color-disponible { --color-estado: var(--an-disponible); }
+.color-reservado  { --color-estado: var(--an-reservado); }
+.color-vendido    { --color-estado: var(--an-vendido); }
+
+/* Etiqueta "Vista de gestión": distingue el modo de un vistazo */
+.etiqueta-gestion {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: var(--an-tinta);
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: .35rem .85rem;
+}
+
+/* Barra de gestión arriba del catálogo, con franja naranja a la izquierda */
+.barra-gestion {
+    background: var(--an-superficie);
+    border: 1px solid var(--an-borde);
+    border-left: 5px solid var(--an-acento);
+    border-radius: var(--an-radio);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.totales-gestion {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+    .totales-gestion {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.total-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    background: var(--an-fondo);
+    border-radius: var(--an-radio-sm);
+    padding: .75rem 1rem;
+}
+
+.total-punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-estado, var(--an-tinta));
+    flex-shrink: 0;
+}
+
+.total-numero {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.total-etiqueta {
+    font-size: .8rem;
+    color: var(--an-texto-suave);
+}
+
+/* Tarjeta en modo gestión: más compacta, con franja del color del estado arriba */
+.tarjeta-gestion {
+    border-top: 4px solid var(--color-estado);
+}
+
+.tarjeta-gestion .tarjeta-foto {
+    aspect-ratio: 16 / 9;
+}
+
+.tarjeta-gestion .card-body {
+    padding: 1rem;
+}
+
+.tarjeta-gestion .precio {
+    font-size: 1.3rem;
+    margin-bottom: .5rem;
+}
+
+/* El estado se ve más marcado: etiqueta de color sólido */
+.tarjeta-gestion .badge-estado,
+.panel-gestion .badge-estado {
+    background: var(--color-estado);
+    color: #fff;
+}
+
+/* Un vendido se ve apagado para distinguirlo rápido */
+.tarjeta-gestion.color-vendido .tarjeta-foto img {
+    filter: grayscale(.6);
+}
+
+.tarjeta-meta {
+    font-size: .78rem;
+    color: var(--an-texto-suave);
+    margin-bottom: .75rem;
+}
+
+/* Panel lateral "Gestión" en el detalle */
+.panel-gestion {
+    border-left: 5px solid var(--an-acento);
+    margin-bottom: 1.25rem;
+}
+
+.panel-gestion dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .45rem 1rem;
+    margin-bottom: 1rem;
+    font-size: .92rem;
+}
+
+.panel-gestion dt {
+    font-weight: 500;
+    color: var(--an-texto-suave);
+}
+
+.panel-gestion dd {
+    margin: 0;
+    font-weight: 600;
 }
 
 /* Si el usuario pidió menos animaciones en su sistema, se desactivan */

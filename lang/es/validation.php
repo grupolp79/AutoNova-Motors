@@ -39,6 +39,7 @@ return [
         'combustible' => 'combustible',
         'estado' => 'estado',
         'fotos' => 'fotos',
+        'descripcion' => 'descripción',
         'email' => 'correo electrónico',
         'password' => 'contraseña',
         'name' => 'nombre',

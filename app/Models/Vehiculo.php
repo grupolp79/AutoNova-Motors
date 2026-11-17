@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,13 +16,62 @@ class Vehiculo extends Model
     const COMBUSTIBLES = ['nafta' => 'Nafta', 'diesel' => 'Diésel', 'hibrido' => 'Híbrido', 'electrico' => 'Eléctrico'];
     const ESTADOS = ['disponible' => 'Disponible', 'reservado' => 'Reservado', 'vendido' => 'Vendido'];
 
+    // Cómo se nombra el motor en el texto de respaldo de la descripción
+    const MOTORES = ['nafta' => 'motor a nafta', 'diesel' => 'motor diésel', 'hibrido' => 'motor híbrido', 'electrico' => 'motor eléctrico'];
+
+    // Largo máximo de la mini descripción (se valida en VehiculoController)
+    const DESCRIPCION_MAX = 500;
+
     protected $fillable = [
         'marca', 'modelo', 'anio', 'precio', 'kilometraje',
-        'transmision', 'combustible', 'estado', 'destacado',
+        'transmision', 'combustible', 'estado', 'destacado', 'descripcion',
     ];
 
     // destacado es tinyint(1) en la base: con el cast llega como true/false y no como 1/0
     protected $casts = ['destacado' => 'boolean'];
+
+    /**
+     * Texto para mostrar en el catálogo y el detalle: $vehiculo->resumen.
+     * Si el vehículo tiene descripción, es esa. Si no (por ejemplo, los que se cargaron antes de que
+     * existiera la columna), se arma una frase corta con sus datos. Ej.: "Año 2020, 50.000 km. Caja manual y motor a nafta."
+     */
+    protected function resumen(): Attribute
+    {
+        return Attribute::get(function () {
+            if (filled($this->descripcion)) {
+                return trim($this->descripcion);
+            }
+
+            $caja = mb_strtolower(self::TRANSMISIONES[$this->transmision] ?? $this->transmision);
+            $motor = self::MOTORES[$this->combustible] ?? $this->combustible;
+            $inicio = $this->kilometraje == 0
+                ? "0 km, modelo {$this->anio}."
+                : "Año {$this->anio}, " . number_format($this->kilometraje, 0, ',', '.') . ' km.';
+
+            return "{$inicio} Caja {$caja} y {$motor}.";
+        });
+    }
+
+    /**
+     * Cantidad de vehículos por estado en TODA la tabla (no depende de los filtros del catálogo).
+     * Se usa en la barra de gestión del catálogo (Empleado y Admin).
+     * Devuelve ['total' => 10, 'disponible' => 6, 'reservado' => 3, 'vendido' => 1].
+     */
+    public static function totalesPorEstado(): array
+    {
+        // Una sola consulta: SELECT estado, COUNT(*) ... GROUP BY estado
+        $porEstado = self::query()
+            ->selectRaw('estado, COUNT(*) as total')
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $totales = ['total' => (int) $porEstado->sum()];
+        foreach (array_keys(self::ESTADOS) as $estado) {
+            $totales[$estado] = (int) ($porEstado[$estado] ?? 0);
+        }
+
+        return $totales;
+    }
 
     // Opciones del select "Ordenar por". La clave '' es el orden por defecto (destacados primero).
     const ORDENES = [
@@ -52,6 +102,41 @@ class Vehiculo extends Model
     public function resenas()
     {
         return $this->hasMany(Resena::class);
+    }
+
+    // Diferencia (en %) hasta la que se considera que el precio está "en línea" con la referencia
+    const MARGEN_EN_LINEA = 5;
+
+    /** Fila de la tabla de precios de referencia que corresponde a este vehículo (RF-04), o null si no hay. */
+    public function precioReferencia(): ?PrecioReferencia
+    {
+        return PrecioReferencia::paraVehiculo($this)->first();
+    }
+
+    /**
+     * Compara el precio publicado con el de referencia. Devuelve null si no hay referencia.
+     *   referencia: precio de referencia · diferencia: precio publicado menos referencia
+     *   porcentaje: diferencia sobre la referencia, con un decimal
+     *   veredicto: 'por_debajo', 'en_linea' o 'por_encima' (en línea = dentro de ±MARGEN_EN_LINEA %)
+     */
+    public function comparacionPrecio(): ?array
+    {
+        $fila = $this->precioReferencia();
+        $referencia = $fila ? (float) $fila->precio_referencia : 0.0;
+
+        if ($referencia <= 0) {
+            return null;
+        }
+
+        $diferencia = (float) $this->precio - $referencia;
+        $porcentaje = round($diferencia / $referencia * 100, 1);
+
+        return [
+            'referencia' => $referencia,
+            'diferencia' => $diferencia,
+            'porcentaje' => $porcentaje,
+            'veredicto' => abs($porcentaje) <= self::MARGEN_EN_LINEA ? 'en_linea' : ($porcentaje < 0 ? 'por_debajo' : 'por_encima'),
+        ];
     }
 
     /**
