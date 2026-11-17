@@ -109,6 +109,12 @@ php artisan test
 
 Las pruebas usan una base SQLite en memoria, separada de la base de desarrollo, y el proyecto impide que corran contra otra base. Requieren la extensión `pdo_sqlite` de PHP (se comprueba con `php -m`; si falta, se activa en `php.ini`).
 
+## Índices y lógica en la base de datos
+
+- Los índices de rendimiento (catálogo, consultas, reporte) están en `database/migrations/2026_11_16_170000_add_indices_de_rendimiento.php`, cada uno con el motivo en un comentario.
+- La lógica que vive en el servidor de base de datos (vista `vista_ventas_cerradas`, trigger `trg_leads_estado_no_retrocede` y procedimiento `sp_ventas_por_mes`) está en `database/migrations/2026_11_16_170100_create_logica_en_servidor.php`.
+- `database/sql/verificar_servidor.sql` comprueba a mano esos objetos en MariaDB, y `database/sql/prueba_rendimiento.sql` mide los índices con 100.000 filas sobre una copia de la tabla.
+
 ## Respaldo de la base de datos
 
 El procedimiento de respaldo y recuperación está en el Manual Técnico (parte de Base de Datos). El archivo `database/respaldo/verificar_conteos.sql` sirve para comprobar que una base restaurada tiene los mismos datos que la original.
