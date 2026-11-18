@@ -3,15 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
+use App\Models\User;
 use App\Models\Vehiculo;
+use App\Notifications\ConsultaActualizada;
+use App\Notifications\NuevaConsulta;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Consultas (leads). RF-03, RF-06 y RF-09.
  *   Cliente:          consulta por un vehículo (store) y ve sus consultas (mias).
  *   Empleado y Admin: bandeja (index), detalle con historial (show) y avance de estado (avanzar).
+ * Al crear una consulta se avisa al equipo y al avanzarla se avisa al cliente (campanita, NotificacionController).
  */
 class ConsultaController extends Controller implements HasMiddleware
 {
@@ -46,12 +51,15 @@ class ConsultaController extends Controller implements HasMiddleware
             'mensaje' => ['nullable', 'string', 'max:500'],
         ]);
 
-        Lead::create([
+        $consulta = Lead::create([
             'usuario_id' => $request->user()->id,
             'vehiculo_id' => $vehiculo->id,
             'estado' => 'nuevo',
             'mensaje' => filled($datos['mensaje'] ?? null) ? trim($datos['mensaje']) : null,
         ]);
+
+        // Aviso en la campanita de todo el equipo (Empleado y Admin): entró una consulta nueva
+        Notification::send(User::whereIn('rol', ['empleado', 'admin'])->get(), new NuevaConsulta($consulta));
 
         return redirect()->route('consultas.mias')
             ->with('success', 'Tu consulta fue enviada. Un empleado se va a comunicar con vos.');
@@ -121,6 +129,9 @@ class ConsultaController extends Controller implements HasMiddleware
         if ($error !== null) {
             return redirect()->route('consultas.show', $consulta)->with('error', $error);
         }
+
+        // Aviso en la campanita del cliente: su consulta avanzó (solo si el avance se concretó)
+        $consulta->cliente->notify(ConsultaActualizada::porEstado($consulta));
 
         $mensaje = match ($consulta->estado) {
             'contactado' => 'Consulta marcada como Contactada.',

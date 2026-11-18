@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Interaccion;
 use App\Models\Lead;
+use App\Notifications\ConsultaActualizada;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -40,6 +41,9 @@ class InteraccionController extends Controller implements HasMiddleware
             'fecha' => $datos['fecha'] ?? now(),
             'comentario' => filled($datos['comentario'] ?? null) ? trim($datos['comentario']) : null,
         ]);
+
+        // Aviso en la campanita del cliente: el equipo se comunicó (sin el comentario, que es interno)
+        $consulta->cliente->notify(ConsultaActualizada::porContacto($consulta, $datos['tipo']));
 
         return redirect()->route('consultas.show', $consulta)
             ->with('success', 'Contacto registrado en el historial.');

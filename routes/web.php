@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConsultaController;
 use App\Http\Controllers\FavoritoController;
 use App\Http\Controllers\InteraccionController;
+use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\PrecioReferenciaController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\ReporteController;
@@ -57,3 +58,9 @@ Route::get('/precios-referencia', [PrecioReferenciaController::class, 'index'])-
 Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
 Route::post('/vehiculos/{vehiculo}/favorito', [FavoritoController::class, 'store'])->name('favoritos.store');
 Route::delete('/vehiculos/{vehiculo}/favorito', [FavoritoController::class, 'destroy'])->name('favoritos.destroy');
+
+// Campanita de avisos: la usan los tres roles, cada uno con los suyos.
+// El permiso está en NotificacionController::middleware().
+Route::get('/notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
+Route::post('/notificaciones/leer-todas', [NotificacionController::class, 'leerTodas'])->name('notificaciones.leer-todas');
+Route::post('/notificaciones/{id}/leer', [NotificacionController::class, 'leer'])->name('notificaciones.leer');

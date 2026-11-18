@@ -87,6 +87,9 @@
                         </li>
                     @endif
 
+                    {{-- Campanita de avisos (los tres roles) --}}
+                    @include('layouts._campanita')
+
                     <li class="nav-item">
                         <span class="navbar-text d-inline-flex align-items-center gap-2 ms-lg-3 me-lg-2 my-2 my-lg-0">
                             <i class="bi bi-person-circle" aria-hidden="true"></i>
