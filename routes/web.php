@@ -9,6 +9,7 @@ use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\PrecioReferenciaController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\ResenaController;
 use App\Http\Controllers\TurnoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VehiculoController;
@@ -81,3 +82,10 @@ Route::get('/mis-turnos', [TurnoController::class, 'mios'])->name('turnos.mios')
 Route::patch('/mis-turnos/{turno}/cancelar', [TurnoController::class, 'cancelar'])->name('turnos.cancelar');
 Route::get('/turnos', [TurnoController::class, 'index'])->name('turnos.index');
 Route::patch('/turnos/{turno}/estado', [TurnoController::class, 'cambiarEstado'])->name('turnos.estado');
+
+// Reseñas con moderación (RF-14): el cliente reseña una compra (consulta cerrada suya) y el Admin modera.
+// Los permisos por rol están en ResenaController::middleware(); la consulta de otro cliente da 403.
+Route::get('/mis-consultas/{consulta}/resena', [ResenaController::class, 'create'])->name('resenas.create');
+Route::post('/mis-consultas/{consulta}/resena', [ResenaController::class, 'store'])->name('resenas.store');
+Route::get('/resenas', [ResenaController::class, 'index'])->name('resenas.index');
+Route::patch('/resenas/{resena}/moderar', [ResenaController::class, 'moderar'])->name('resenas.moderar');

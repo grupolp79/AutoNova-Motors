@@ -87,4 +87,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Turno::class, 'usuario_id');
     }
+
+    // Reseñas que dejó el usuario cuando es cliente (RF-14)
+    public function resenas()
+    {
+        return $this->hasMany(Resena::class, 'usuario_id');
+    }
 }

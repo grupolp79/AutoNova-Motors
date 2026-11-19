@@ -7,6 +7,8 @@
         'contacto_consulta' => 'bi-telephone-fill',
         'nuevo_turno' => 'bi-calendar-plus-fill',
         'estado_turno' => 'bi-calendar-check-fill',
+        'nueva_resena' => 'bi-chat-quote-fill',
+        'resena_moderada' => 'bi-patch-check-fill',
         default => 'bi-bell-fill',
     };
     $sinLeer = $aviso->read_at === null;

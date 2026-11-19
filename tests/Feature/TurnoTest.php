@@ -47,10 +47,13 @@ class TurnoTest extends TestCase
         ]);
     }
 
-    private function pedir(User $cliente, Vehiculo $vehiculo, ?string $fecha = self::FECHA_VALIDA)
+    /** Pide un turno como lo manda el formulario: dos listas, dia (2026-11-20) y hora (10:30). */
+    private function pedir(User $cliente, Vehiculo $vehiculo, string $fecha = self::FECHA_VALIDA)
     {
+        [$dia, $hora] = explode('T', $fecha) + ['', ''];
+
         return $this->actingAs($cliente)->from("/vehiculos/{$vehiculo->id}")
-            ->post("/vehiculos/{$vehiculo->id}/turno", ['fecha_hora' => $fecha]);
+            ->post("/vehiculos/{$vehiculo->id}/turno", ['dia' => $dia, 'hora' => $hora]);
     }
 
     // ----------------------------------------------------------------- Acceso
@@ -64,7 +67,7 @@ class TurnoTest extends TestCase
         $url = str_replace(['{vehiculo}', '{turno}'], [(string) $v->id, (string) $t->id], $ruta);
         $actor = $rol === 'visitante' ? $this : $this->actingAs($this->{$rol}());
 
-        $respuesta = $actor->call($metodo, $url, ['fecha_hora' => '2026-11-21T11:00', 'estado' => 'confirmado']);
+        $respuesta = $actor->call($metodo, $url, ['dia' => '2026-11-21', 'hora' => '11:00', 'estado' => 'confirmado']);
 
         $respuesta->assertStatus($esperado);
         if ($rol === 'visitante') {
@@ -113,7 +116,7 @@ class TurnoTest extends TestCase
         $t = $this->turnoDe($this->cliente(), $v);
 
         foreach (['empleado', 'admin'] as $rol) {
-            $this->actingAs($this->{$rol}())->post("/vehiculos/{$v->id}/turno", ['fecha_hora' => '2026-11-21T11:00'])->assertForbidden();
+            $this->actingAs($this->{$rol}())->post("/vehiculos/{$v->id}/turno", ['dia' => '2026-11-21', 'hora' => '11:00'])->assertForbidden();
         }
         $this->actingAs($this->cliente())->patch("/turnos/{$t->id}/estado", ['estado' => 'confirmado'])->assertForbidden();
         auth()->logout();
@@ -156,29 +159,129 @@ class TurnoTest extends TestCase
 
     #[Group('RF-13')]
     #[DataProvider('fechasInvalidas')]
-    public function test_rechaza_fechas_invalidas_con_mensaje_en_espanol(?string $fecha, string $mensaje): void
+    public function test_rechaza_fechas_invalidas_con_mensaje_en_espanol(string $dia, string $hora, string $campo, string $mensaje): void
     {
+        // Las listas del formulario no ofrecen estos valores, pero el pedido se puede armar a mano
         $v = $this->vehiculo();
 
-        $this->pedir($this->cliente(), $v, $fecha)
+        $this->actingAs($this->cliente())->from("/vehiculos/{$v->id}")
+            ->post("/vehiculos/{$v->id}/turno", ['dia' => $dia, 'hora' => $hora])
             ->assertRedirect("/vehiculos/{$v->id}")
-            ->assertSessionHasErrors(['fecha_hora' => $mensaje]);
+            ->assertSessionHasErrors([$campo => $mensaje]);
 
         $this->assertSame(0, Turno::count());
     }
 
     public static function fechasInvalidas(): array
     {
+        // [dia, hora, campo con el error, mensaje]
         return [
-            'vacía' => ['', 'Elegí la fecha y la hora del turno.'],
-            'formato inválido' => ['mañana a la tarde', 'La fecha y hora no tienen un formato válido. Elegila de nuevo en el calendario.'],
-            'fecha pasada' => ['2026-11-17T10:00', 'La fecha del turno tiene que ser futura.'],
-            'hoy más temprano' => ['2026-11-18T09:30', 'La fecha del turno tiene que ser futura.'],
-            'domingo' => ['2026-11-22T10:00', 'Los turnos son de lunes a sábado. Elegí otro día.'],
-            'antes de abrir' => ['2026-11-20T08:30', 'Los turnos son entre las 09:00 y las 18:00. Elegí otro horario.'],
-            'después de cerrar' => ['2026-11-20T18:30', 'Los turnos son entre las 09:00 y las 18:00. Elegí otro horario.'],
-            'fuera del intervalo de 30 minutos' => ['2026-11-20T10:15', 'Los turnos se dan cada 30 minutos (por ejemplo 10:00 o 10:30).'],
+            'sin día' => ['', '10:30', 'dia', 'Elegí el día del turno.'],
+            'sin hora' => ['2026-11-20', '', 'hora', 'Elegí la hora del turno.'],
+            'día con formato inválido' => ['mañana', '10:30', 'dia', 'El día elegido no es válido. Elegilo de nuevo en la lista.'],
+            'hora con formato inválido' => ['2026-11-20', 'a la tarde', 'hora', 'La hora elegida no es válida. Elegila de nuevo en la lista.'],
+            'fecha pasada' => ['2026-11-17', '10:00', 'fecha_hora', 'La fecha del turno tiene que ser futura.'],
+            'hoy más temprano' => ['2026-11-18', '09:30', 'fecha_hora', 'La fecha del turno tiene que ser futura.'],
+            'domingo' => ['2026-11-22', '10:00', 'fecha_hora', 'Los turnos son de lunes a sábado. Elegí otro día.'],
+            'antes de abrir' => ['2026-11-20', '08:30', 'fecha_hora', 'Los turnos son entre las 09:00 y las 18:00. Elegí otro horario.'],
+            'después de cerrar' => ['2026-11-20', '18:30', 'fecha_hora', 'Los turnos son entre las 09:00 y las 18:00. Elegí otro horario.'],
+            'fuera del intervalo de 30 minutos' => ['2026-11-20', '10:15', 'fecha_hora', 'Los turnos se dan cada 30 minutos (por ejemplo 10:00 o 10:30).'],
         ];
+    }
+
+    // ------------------------------------------------ Listas desplegables del formulario
+
+    #[Group('RF-13')]
+    public function test_la_lista_de_dias_ofrece_solo_dias_de_atencion_sin_domingos(): void
+    {
+        $dias = array_map(fn ($d) => $d->format('Y-m-d'), Turno::diasParaElegir());
+
+        // Hoy (miércoles 18, 10:00) todavía tiene horarios, así que entra; el domingo 22 y el 29 no
+        $this->assertCount(Turno::DIAS_A_OFRECER, $dias);
+        $this->assertSame(['2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-23'], array_slice($dias, 0, 5));
+        $this->assertNotContains('2026-11-22', $dias);
+        $this->assertNotContains('2026-11-29', $dias);
+
+        // Después del último horario (18:00) hoy ya no se ofrece
+        Carbon::setTestNow(Carbon::parse('2026-11-18 18:10'));
+        $this->assertSame('2026-11-19', Turno::diasParaElegir()[0]->format('Y-m-d'));
+    }
+
+    #[Group('RF-13')]
+    public function test_la_lista_de_horas_va_de_9_a_18_cada_30_minutos(): void
+    {
+        $horarios = Turno::horarios();
+
+        $this->assertCount(19, $horarios);
+        $this->assertSame('09:00', $horarios[0]);
+        $this->assertSame('09:30', $horarios[1]);
+        $this->assertSame('18:00', end($horarios));
+    }
+
+    #[Group('RF-13')]
+    public function test_el_formulario_tiene_las_dos_listas_con_dias_y_horarios_de_atencion(): void
+    {
+        $v = $this->vehiculo();
+
+        $html = $this->actingAs($this->cliente())->get("/vehiculos/{$v->id}")->assertOk()
+            ->assertSee('<select id="turnoDia" name="dia"', false)
+            ->assertSee('<select id="turnoHora" name="hora"', false)
+            ->assertSee('value="2026-11-20"', false)
+            ->assertSee('Viernes 20/11')
+            ->assertSee('Sábado 21/11')
+            ->assertDontSee('value="2026-11-22"', false) // domingo
+            ->assertSee('value="09:00"', false)
+            ->assertSee('value="18:00"', false)
+            ->assertDontSee('value="08:30"', false)
+            ->assertDontSee('value="18:30"', false)
+            ->getContent();
+
+        // Ya no se usa el calendario libre
+        $this->assertStringNotContainsString('type="datetime-local"', $html);
+    }
+
+    #[Group('RF-13')]
+    public function test_los_horarios_ocupados_y_los_que_ya_pasaron_salen_deshabilitados(): void
+    {
+        $v = $this->vehiculo();
+        $otro = $this->vehiculo();
+        // Hoy (el primer día de la lista) a las 11:00 hay un turno confirmado de este vehículo;
+        // a las 12:00 hay uno cancelado (no ocupa) y a las 13:00 uno de otro vehículo (tampoco)
+        $this->turnoDe($this->cliente(), $v, 'confirmado', '2026-11-18 11:00');
+        $this->turnoDe($this->cliente(), $v, 'cancelado', '2026-11-18 12:00');
+        $this->turnoDe($this->cliente(), $otro, 'pendiente', '2026-11-18 13:00');
+        // Otro día ocupado: viernes 20 a las 15:30
+        $this->turnoDe($this->cliente(), $v, 'pendiente', '2026-11-20 15:30');
+
+        $html = $this->actingAs($this->cliente())->get("/vehiculos/{$v->id}")->assertOk()->getContent();
+
+        // En el día elegido (hoy): 09:00, 09:30 y 10:00 ya pasaron y 11:00 está ocupado
+        foreach (['09:00', '09:30', '10:00', '11:00'] as $hora) {
+            $this->assertMatchesRegularExpression('#<option value="' . $hora . '"\s+disabled#', $html, "$hora tendría que estar deshabilitado");
+        }
+        foreach (['10:30', '12:00', '13:00', '18:00'] as $hora) {
+            $this->assertMatchesRegularExpression('#<option value="' . $hora . '"\s*>#', $html, "$hora tendría que estar habilitado");
+        }
+
+        // Los de los demás días van en el script que actualiza la lista al cambiar de día
+        $this->assertEquals(
+            ['2026-11-18' => ['09:00', '09:30', '10:00', '11:00'], '2026-11-20' => ['15:30']],
+            Turno::horariosNoDisponibles($v, Turno::diasParaElegir())
+        );
+        $this->assertStringContainsString('"2026-11-20":["15:30"]', $html);
+    }
+
+    #[Group('RF-13')]
+    public function test_si_vuelve_con_error_quedan_elegidos_el_dia_y_la_hora_que_mando(): void
+    {
+        $v = $this->vehiculo();
+        $this->turnoDe($this->cliente(), $v, 'confirmado', '2026-11-20 10:30');
+
+        $this->pedir($this->cliente(), $v)->assertSessionHasErrors('fecha_hora'); // horario ocupado
+
+        $html = $this->get("/vehiculos/{$v->id}")->getContent();
+        $this->assertMatchesRegularExpression('#<option value="2026-11-20"\s+selected#', $html);
+        $this->assertStringContainsString('Ese horario ya está tomado para este vehículo. Elegí otro.', $html);
     }
 
     #[Group('RF-13')]
@@ -267,7 +370,7 @@ class TurnoTest extends TestCase
     #[Group('RF-13')]
     public function test_un_vehiculo_que_no_existe_da_404(): void
     {
-        $this->actingAs($this->cliente())->post('/vehiculos/9999/turno', ['fecha_hora' => self::FECHA_VALIDA])->assertNotFound();
+        $this->actingAs($this->cliente())->post('/vehiculos/9999/turno', ['dia' => '2026-11-20', 'hora' => '10:30'])->assertNotFound();
     }
 
     // ----------------------------------------------------- Mis turnos y cancelar
@@ -557,7 +660,7 @@ class TurnoTest extends TestCase
 
         $this->actingAs($this->cliente())->get("/vehiculos/{$v->id}")->assertOk()
             ->assertSee($formulario, false)
-            ->assertSee('name="fecha_hora"', false)
+            ->assertSee('name="dia"', false)->assertSee('name="hora"', false)
             ->assertSee('Pedir turno');
 
         foreach (['empleado', 'admin'] as $rol) {

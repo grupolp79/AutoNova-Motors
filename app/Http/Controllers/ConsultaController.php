@@ -74,7 +74,10 @@ class ConsultaController extends Controller implements HasMiddleware
             ->latest()
             ->paginate(10);
 
-        return view('consultas.mias', ['consultas' => $consultas]);
+        // Reseñas del cliente por vehículo (RF-14): en las consultas cerradas se muestra la reseña o "Dejar reseña"
+        $resenas = $request->user()->resenas()->get()->keyBy('vehiculo_id');
+
+        return view('consultas.mias', ['consultas' => $consultas, 'resenas' => $resenas]);
     }
 
     /** Bandeja del equipo: filtro por estado y por vehículo, más cantidades por estado. */

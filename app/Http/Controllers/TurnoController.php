@@ -38,16 +38,24 @@ class TurnoController extends Controller implements HasMiddleware
                 ->with('error', 'Solo se pueden pedir turnos de vehículos disponibles.');
         }
 
+        // El formulario manda dos listas desplegables: dia (2026-11-20) y hora (10:30).
+        // Las listas ya ofrecen solo días y horarios de atención, pero el servidor vuelve a controlar todo
+        // porque el pedido se puede armar a mano.
         $request->validate([
-            // datetime-local manda la fecha así: 2026-11-20T10:30
-            'fecha_hora' => ['required', 'date_format:Y-m-d\TH:i', 'after:now'],
+            'dia' => ['required', 'date_format:Y-m-d'],
+            'hora' => ['required', 'date_format:H:i'],
         ], [
-            'fecha_hora.required' => 'Elegí la fecha y la hora del turno.',
-            'fecha_hora.date_format' => 'La fecha y hora no tienen un formato válido. Elegila de nuevo en el calendario.',
-            'fecha_hora.after' => 'La fecha del turno tiene que ser futura.',
+            'dia.required' => 'Elegí el día del turno.',
+            'dia.date_format' => 'El día elegido no es válido. Elegilo de nuevo en la lista.',
+            'hora.required' => 'Elegí la hora del turno.',
+            'hora.date_format' => 'La hora elegida no es válida. Elegila de nuevo en la lista.',
         ]);
 
-        $fecha = Carbon::createFromFormat('Y-m-d\TH:i', $request->input('fecha_hora'))->startOfMinute();
+        $fecha = Carbon::createFromFormat('Y-m-d H:i', $request->input('dia') . ' ' . $request->input('hora'))->startOfMinute();
+
+        if (! $fecha->isFuture()) {
+            return back()->withErrors(['fecha_hora' => 'La fecha del turno tiene que ser futura.'])->withInput();
+        }
 
         // Día y horario de atención (los valores están en el modelo Turno)
         if ($problema = Turno::problemaDeHorario($fecha)) {

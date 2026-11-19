@@ -69,6 +69,85 @@ class Turno extends Model
         return in_array($estado, $this->siguientes(), true);
     }
 
+    // Cuántos días de atención se ofrecen en la lista desplegable "Día"
+    const DIAS_A_OFRECER = 14;
+
+    /** Horarios de atención de un día: ['09:00', '09:30', ..., '18:00']. */
+    public static function horarios(): array
+    {
+        $horarios = [];
+        $hora = Carbon::createFromTimeString(self::HORA_APERTURA);
+        $cierre = Carbon::createFromTimeString(self::HORA_CIERRE);
+
+        while ($hora <= $cierre) {
+            $horarios[] = $hora->format('H:i');
+            $hora->addMinutes(self::MINUTOS_POR_TURNO);
+        }
+
+        return $horarios;
+    }
+
+    /**
+     * Próximos días de atención para la lista "Día" (sin domingos). Hoy entra solo si todavía queda algún horario.
+     * Devuelve fechas Carbon a las 00:00.
+     */
+    public static function diasParaElegir(): array
+    {
+        $dias = [];
+        $dia = today();
+        $horarios = self::horarios();
+        $ultimoHorario = end($horarios);
+
+        while (count($dias) < self::DIAS_A_OFRECER) {
+            $quedanHorarios = $dia->copy()->setTimeFromTimeString($ultimoHorario)->isFuture();
+            if (in_array($dia->dayOfWeekIso, self::DIAS_ATENCION, true) && $quedanHorarios) {
+                $dias[] = $dia->copy();
+            }
+            $dia->addDay();
+        }
+
+        return $dias;
+    }
+
+    /**
+     * Horarios que NO se pueden elegir en cada día de la lista, para deshabilitarlos en el formulario:
+     * los que ya pasaron (hoy) y los que tienen un turno activo de este vehículo.
+     * Devuelve ['2026-11-20' => ['10:30', '11:00'], ...] (solo los días que tienen alguno).
+     */
+    public static function horariosNoDisponibles(Vehiculo $vehiculo, array $dias): array
+    {
+        $resultado = [];
+        if (! $dias) {
+            return $resultado;
+        }
+
+        // Turnos activos del vehículo dentro del rango de días de la lista (una sola consulta)
+        $ocupados = self::activos()
+            ->where('vehiculo_id', $vehiculo->id)
+            ->whereBetween('fecha_hora', [$dias[0]->copy()->startOfDay(), end($dias)->copy()->endOfDay()])
+            ->pluck('fecha_hora');
+
+        foreach ($ocupados as $fecha) {
+            $resultado[$fecha->format('Y-m-d')][] = $fecha->format('H:i');
+        }
+
+        // Hoy: los horarios que ya pasaron (o son justo ahora: el turno tiene que ser futuro, igual que en el servidor)
+        foreach (self::horarios() as $hora) {
+            if (! today()->setTimeFromTimeString($hora)->isFuture()) {
+                $resultado[today()->format('Y-m-d')][] = $hora;
+            }
+        }
+
+        // Cada día con sus horarios en orden y sin repetir
+        foreach ($resultado as $dia => $horas) {
+            $horas = array_unique($horas);
+            sort($horas);
+            $resultado[$dia] = $horas;
+        }
+
+        return $resultado;
+    }
+
     /**
      * Revisa que la fecha caiga en el horario de atención.
      * Devuelve null si está bien, o el texto del problema (se muestra como error del formulario).

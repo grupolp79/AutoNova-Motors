@@ -46,6 +46,46 @@ class SeedersTest extends TestCase
         $this->assertSame(0, DB::table('favoritos')->whereNotIn('vehiculo_id', DB::table('vehiculos')->select('id'))->count());
     }
 
+    public function test_los_turnos_de_ejemplo_respetan_las_reglas_de_turnos(): void
+    {
+        $this->seed();
+
+        $turnos = \App\Models\Turno::with('vehiculo')->get();
+
+        // Al menos uno de cada estado
+        foreach (array_keys(\App\Models\Turno::ESTADOS) as $estado) {
+            $this->assertTrue($turnos->contains('estado', $estado), "No hay turnos en estado $estado");
+        }
+
+        foreach ($turnos as $t) {
+            // Lunes a sábado, de 09:00 a 18:00, cada 30 minutos
+            $this->assertNull(\App\Models\Turno::problemaDeHorario($t->fecha_hora), "Turno {$t->id} fuera de horario");
+
+            if ($t->estaActivo()) {
+                $this->assertTrue($t->fecha_hora->isFuture(), "Turno activo {$t->id} en el pasado");
+                $this->assertSame('disponible', $t->vehiculo->estado, "Turno activo {$t->id} de un vehículo no disponible");
+            }
+        }
+
+        $activos = $turnos->filter->estaActivo();
+        $this->assertSame($activos->count(), $activos->unique(fn ($t) => $t->usuario_id . '-' . $t->vehiculo_id)->count(), 'Cliente con dos turnos activos del mismo vehículo');
+        $this->assertSame($activos->count(), $activos->unique(fn ($t) => $t->vehiculo_id . '-' . $t->fecha_hora)->count(), 'Vehículo con dos turnos activos en el mismo horario');
+    }
+
+    public function test_el_seeder_de_turnos_se_puede_correr_solo_y_reemplaza_los_turnos(): void
+    {
+        $this->seed();
+        $antes = \App\Models\Turno::pluck('id')->all();
+
+        $this->seed(\Database\Seeders\TurnoSeeder::class);
+
+        // Siguen siendo 20, todos nuevos, y el resto de los datos no cambió
+        $this->assertSame(20, DB::table('turnos')->count());
+        $this->assertEmpty(array_intersect($antes, \App\Models\Turno::pluck('id')->all()));
+        $this->assertSame(40, DB::table('vehiculos')->count());
+        $this->assertSame(15, DB::table('users')->count());
+    }
+
     public function test_las_resenas_son_de_ventas_cerradas(): void
     {
         $this->seed();

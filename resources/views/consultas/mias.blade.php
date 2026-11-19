@@ -53,6 +53,32 @@
                 <div class="mt-3">
                     @include('consultas._progreso', ['estado' => $consulta->estado])
                 </div>
+
+                {{-- Reseña (RF-14): solo en las consultas cerradas, es decir, en las compras --}}
+                @if ($consulta->estaCerrado())
+                    @php $resena = $resenas[$consulta->vehiculo_id] ?? null; @endphp
+                    <div class="resena-compra mt-3">
+                        @if ($resena)
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <span class="fw-semibold"><i class="bi bi-chat-quote" aria-hidden="true"></i> Tu reseña</span>
+                                <span class="badge badge-resena resena-{{ $resena->estado_moderacion }}">{{ \App\Models\Resena::MODERACION[$resena->estado_moderacion] }}</span>
+                            </div>
+                            <p class="mb-1 texto-resena">{{ $resena->texto }}</p>
+                            <p class="small text-muted mb-0">
+                                @switch($resena->estado_moderacion)
+                                    @case('pendiente') Se va a ver en la página del vehículo cuando el administrador la apruebe. @break
+                                    @case('aprobada') Ya se ve en la página del vehículo. ¡Gracias! @break
+                                    @default El administrador decidió no publicarla.
+                                @endswitch
+                            </p>
+                        @else
+                            <span class="me-2">¿Cómo fue tu compra?</span>
+                            <a href="{{ route('resenas.create', $consulta) }}" class="btn btn-acento btn-sm">
+                                <i class="bi bi-chat-quote" aria-hidden="true"></i> Dejar reseña
+                            </a>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
     @empty

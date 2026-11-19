@@ -99,8 +99,16 @@
                         </li>
                     @endif
 
-                    {{-- Reporte gerencial y listado de usuarios: solo Admin --}}
+                    {{-- Reporte gerencial, moderación de reseñas y listado de usuarios: solo Admin --}}
                     @if (auth()->user()->esAdmin())
+                        @php $resenasPendientes = \App\Models\Resena::where('estado_moderacion', 'pendiente')->count(); @endphp
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('resenas.index')) active @endif"
+                               href="{{ route('resenas.index') }}">
+                                Reseñas
+                                @if ($resenasPendientes > 0) <span class="badge rounded-pill text-bg-warning">{{ $resenasPendientes }}</span> @endif
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link @if (request()->routeIs('reportes.ventas')) active @endif"
                                href="{{ route('reportes.ventas') }}">Reporte de ventas</a>

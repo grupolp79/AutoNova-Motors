@@ -141,4 +141,7 @@
             @include('turnos._cta')
         </div>
     </div>
+
+    {{-- Reseñas de clientes (RF-14): solo las aprobadas; si no hay ninguna, no se muestra nada --}}
+    @include('resenas._lista')
 @endsection

@@ -1237,3 +1237,50 @@ a:focus-visible,
 .turno-cta {
     margin-top: 1rem;
 }
+
+/* ===== 16. Reseñas (RF-14) ===== */
+.badge-resena {
+    font-weight: 700;
+    padding: .4em .7em;
+    border-radius: 999px;
+}
+
+.resena-pendiente { background: var(--an-reservado-suave); color: var(--an-reservado); }
+.resena-aprobada { background: var(--an-disponible-suave); color: var(--an-disponible); }
+.resena-rechazada { background: var(--an-vendido-suave); color: var(--an-vendido); }
+
+/* Respeta los saltos de línea que escribió el cliente (el texto igual va escapado) */
+.texto-resena {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+/* Bloque de la reseña dentro de una consulta cerrada (Mis consultas) */
+.resena-compra {
+    padding-top: .85rem;
+    border-top: 1px solid var(--an-borde);
+}
+
+/* Moderación: las pendientes llevan una franja del color del acento */
+.resena-por-moderar {
+    border-left: 4px solid var(--an-acento);
+}
+
+/* Sección pública del detalle del vehículo */
+.resenas-vehiculo {
+    margin-top: 2.5rem;
+}
+
+.resenas-vehiculo h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.resena-item {
+    background: var(--an-superficie);
+    border: 1px solid var(--an-borde);
+    border-radius: var(--an-radio);
+    padding: 1rem 1.25rem;
+    margin-bottom: .75rem;
+}
