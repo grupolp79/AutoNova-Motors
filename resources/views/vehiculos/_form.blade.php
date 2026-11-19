@@ -4,8 +4,13 @@
     si no, el valor actual del vehículo (vacío cuando es nuevo).
 --}}
 @php
-    // Fotos actuales, una URL por línea
-    $fotosTexto = old('fotos', $vehiculo->fotos->pluck('ruta')->implode("\n"));
+    // En el textarea van SOLO las fotos externas (URL), una por línea. Las subidas como archivo
+    // se muestran aparte como miniaturas: si estuvieran acá, al guardar se validarían como URL y fallarían.
+    $fotosTexto = old('fotos', $vehiculo->fotos->reject->esSubida()->pluck('ruta')->implode("\n"));
+
+    // Errores de los archivos subidos (archivos.0, archivos.1, ...)
+    $erroresArchivos = array_merge($errors->get('archivos'), \Illuminate\Support\Arr::flatten($errors->get('archivos.*')));
+    $quitarElegidas = array_map('intval', old('quitar', []));
 
     // Un checkbox desmarcado no se envía; si hubo error se respeta lo que eligió el usuario
     $destacado = $errors->any() ? old('destacado') : $vehiculo->destacado;
@@ -122,12 +127,44 @@
                 @error('descripcion') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
-            <div class="col-12">
-                <label for="fotos" class="form-label">Fotos (una URL por línea)</label>
-                <textarea id="fotos" name="fotos" rows="5"
+            {{-- Fotos actuales (solo al editar): miniaturas con la casilla "Quitar" --}}
+            @if ($vehiculo->exists && $vehiculo->fotos->isNotEmpty())
+                <div class="col-12">
+                    <span class="form-label d-block">Fotos actuales</span>
+                    <div class="fotos-actuales">
+                        @foreach ($vehiculo->fotos as $foto)
+                            <div class="foto-actual">
+                                <img src="{{ $foto->url }}" alt="Foto {{ $loop->iteration }} de {{ $vehiculo->marca }} {{ $vehiculo->modelo }}" loading="lazy">
+                                <div class="form-check mt-1">
+                                    <input class="form-check-input" type="checkbox" name="quitar[]" value="{{ $foto->id }}"
+                                           id="quitar{{ $foto->id }}" @checked(in_array($foto->id, $quitarElegidas, true))>
+                                    <label class="form-check-label small" for="quitar{{ $foto->id }}">Quitar</label>
+                                </div>
+                                <span class="badge text-bg-light border">{{ $foto->esSubida() ? 'Archivo' : 'URL' }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="form-text">Las fotos se muestran en este orden; la primera es la portada. Las nuevas se agregan al final.</div>
+                </div>
+            @endif
+
+            <div class="col-md-6">
+                <label for="archivos" class="form-label">Subir fotos</label>
+                {{-- accept solo filtra lo que ofrece el navegador; el servidor vuelve a controlar el tipo real --}}
+                <input type="file" id="archivos" name="archivos[]" multiple accept="image/jpeg,image/png,image/webp"
+                       class="form-control @if ($erroresArchivos) is-invalid @endif">
+                <div class="form-text">JPG, PNG o WebP, hasta 5 MB cada una. Hasta {{ \App\Models\Vehiculo::MAX_FOTOS }} fotos por vehículo entre archivos y URLs.</div>
+                @foreach ($erroresArchivos as $error)
+                    <div class="invalid-feedback">{{ $error }}</div>
+                @endforeach
+            </div>
+
+            <div class="col-md-6">
+                <label for="fotos" class="form-label">Fotos externas (una URL por línea)</label>
+                <textarea id="fotos" name="fotos" rows="4"
                           class="form-control font-monospace @if ($erroresFotos) is-invalid @endif"
                           placeholder="https://ejemplo.com/foto1.jpg">{{ $fotosTexto }}</textarea>
-                <div class="form-text">La primera línea es la foto de portada. Al guardar se reemplazan todas las fotos del vehículo.</div>
+                <div class="form-text">Si borrás una línea, esa foto se quita. Las fotos subidas como archivo no aparecen acá.</div>
                 @foreach ($erroresFotos as $error)
                     <div class="invalid-feedback">{{ $error }}</div>
                 @endforeach

@@ -141,7 +141,28 @@ a:focus-visible,
     color: rgba(255, 255, 255, .75);
     border-radius: 999px;
     padding: .4rem .9rem !important;
+    /* Cada ítem en una sola línea ("Precios de referencia" no se parte) */
+    white-space: nowrap;
     transition: background-color var(--an-transicion), color var(--an-transicion);
+}
+
+.navbar-autonova .navbar-text {
+    white-space: nowrap;
+}
+
+/* En pantalla grande el Admin tiene muchos ítems: espaciado más justo y, si no entran,
+   pasan a otra fila como ítems enteros (nunca se corta un ítem por la mitad) */
+@media (min-width: 992px) {
+    .navbar-autonova .navbar-nav {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        row-gap: .25rem;
+    }
+
+    .navbar-autonova .nav-link {
+        padding: .35rem .6rem !important;
+        font-size: .92rem;
+    }
 }
 
 .navbar-autonova .nav-link:hover {
@@ -770,10 +791,49 @@ a:focus-visible,
     margin-bottom: 1rem;
 }
 
-.detalle-descripcion {
-    font-size: 1.05rem;
-    line-height: 1.6;
-    margin-bottom: 1.25rem;
+/*
+ * Grilla de la ficha. Tres áreas: fotos, info (precio, datos y botones) y descripción.
+ *   celular:         fotos / info / descripción (una columna, en ese orden)
+ *   pantalla grande: fotos e info arriba; la descripción debajo de las fotos, mientras la info
+ *                    sigue a la derecha ocupando las dos filas.
+ * Así el panel se dibuja una sola vez y no hace falta repetirlo para cada tamaño.
+ */
+.ficha-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "fotos" "info" "descripcion";
+}
+
+.ficha-fotos { grid-area: fotos; }
+.ficha-info { grid-area: info; }
+.ficha-descripcion { grid-area: descripcion; }
+
+@media (min-width: 992px) {
+    .ficha-grid {
+        column-gap: 3rem;
+        row-gap: 1.5rem;
+        grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+        /* La segunda fila no se estira: la descripción queda pegada debajo del carrusel */
+        grid-template-rows: auto 1fr;
+        grid-template-areas:
+            "fotos info"
+            "descripcion info";
+        align-items: start;
+    }
+}
+
+/* Panel "Descripción": mismo estilo de tarjeta que los demás bloques de la ficha */
+.panel-descripcion {
+    border-radius: var(--an-radio);
+}
+
+/* Respeta los saltos de línea que se escribieron (el texto igual va escapado) */
+.texto-descripcion {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    font-size: 1.02rem;
+    line-height: 1.65;
 }
 
 /* Grilla de tarjetitas con los datos del vehículo */
@@ -1125,7 +1185,20 @@ a:focus-visible,
     color: var(--an-acento-oscuro);
 }
 
-/* Tabla lado a lado: la primera columna es el nombre del dato y las demás, un vehículo cada una */
+/*
+ * Tabla lado a lado: la primera columna es el nombre del dato y las demás, un vehículo cada una.
+ * table-layout: fixed hace que el ancho lo decidan las <col> y no el tamaño de cada foto:
+ * la columna de etiquetas mide 9rem y el resto se reparte en partes iguales.
+ */
+.tabla-comparar {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.tabla-comparar .col-etiqueta {
+    width: 9rem;
+}
+
 .tabla-comparar th[scope="row"],
 .tabla-comparar .dato-nombre {
     width: 9rem;
@@ -1139,11 +1212,15 @@ a:focus-visible,
     letter-spacing: 0;
     white-space: normal;
     vertical-align: top;
-    min-width: 13rem;
     background: var(--an-superficie);
+    /* Un nombre largo baja de línea en vez de ensanchar la columna */
+    overflow-wrap: anywhere;
 }
 
+/* Marco de proporción fija: toda foto (chica, alta o panorámica) ocupa el mismo lugar,
+   recortada parejo con object-fit: cover, sin deformarse ni estirar la columna */
 .comparar-foto {
+    width: 100%;
     aspect-ratio: 4 / 3;
     border-radius: var(--an-radio-sm);
     overflow: hidden;
@@ -1152,8 +1229,10 @@ a:focus-visible,
 }
 
 .comparar-foto img {
+    display: block;
     width: 100%;
     height: 100%;
+    max-width: none;
     object-fit: cover;
 }
 
@@ -1212,8 +1291,16 @@ a:focus-visible,
         box-shadow: 1px 0 0 var(--an-borde), 4px 0 6px -4px rgba(19, 32, 58, .15);
     }
 
-    .tabla-comparar thead th {
-        min-width: 10.5rem;
+    /* Con table-layout: fixed el ancho mínimo de las celdas no cuenta: se le da a la tabla el ancho
+       de la columna de etiquetas más 10.5rem por vehículo (--columnas lo pone la vista), y
+       table-responsive la deja deslizar de costado */
+    .tabla-comparar {
+        width: calc(5.5rem + var(--columnas, 3) * 10.5rem);
+        min-width: 100%;
+    }
+
+    .tabla-comparar .col-etiqueta {
+        width: 5.5rem;
     }
 
     .tabla-comparar > :not(caption) > * > * {
@@ -1283,4 +1370,26 @@ a:focus-visible,
     border-radius: var(--an-radio);
     padding: 1rem 1.25rem;
     margin-bottom: .75rem;
+}
+
+/* ===== 17. Fotos actuales en el formulario de edición ===== */
+.fotos-actuales {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: .75rem;
+}
+
+.foto-actual {
+    border: 1px solid var(--an-borde);
+    border-radius: var(--an-radio-sm);
+    padding: .4rem;
+    background: var(--an-superficie);
+}
+
+.foto-actual img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: calc(var(--an-radio-sm) - 4px);
+    background: var(--an-vendido-suave);
 }

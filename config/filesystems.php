@@ -30,6 +30,19 @@ return [
 
     'disks' => [
 
+        // Fotos de vehículos que se suben como archivo. Se guardan directo dentro de public/,
+        // así el navegador las ve en /uploads/vehiculos/... sin necesitar "php artisan storage:link"
+        // (el enlace simbólico suele fallar en Windows/XAMPP sin permisos de administrador).
+        // En el servidor, la carpeta public/uploads/vehiculos tiene que tener permiso de escritura.
+        'vehiculos' => [
+            'driver' => 'local',
+            'root' => public_path('uploads/vehiculos'),
+            'url' => '/uploads/vehiculos',
+            'visibility' => 'public',
+            'throw' => true,
+            'report' => false,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

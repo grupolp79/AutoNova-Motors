@@ -24,8 +24,11 @@
         <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al catálogo
     </a>
 
-    <div class="row g-4 g-lg-5">
-        <div class="col-lg-7">
+    {{-- Grilla de la ficha (ver .ficha-grid en autonova.css):
+         pantalla grande -> fotos y debajo la descripción a la izquierda, datos a la derecha;
+         celular         -> fotos, datos (precio y características) y al final la descripción. --}}
+    <div class="ficha-grid">
+        <div class="ficha-fotos">
             @if ($vehiculo->fotos->isEmpty())
                 <div class="foto-vacia d-flex flex-column align-items-center justify-content-center text-muted">
                     <i class="bi bi-camera fs-1" aria-hidden="true"></i>
@@ -45,7 +48,7 @@
                         @foreach ($vehiculo->fotos as $i => $foto)
                             {{-- Solo la primera foto lleva la clase 'active' --}}
                             <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
-                                <img src="{{ $foto->ruta }}" class="d-block"
+                                <img src="{{ $foto->url }}" class="d-block"
                                      alt="Foto {{ $i + 1 }} de {{ $vehiculo->marca }} {{ $vehiculo->modelo }}">
                             </div>
                         @endforeach
@@ -63,7 +66,7 @@
             @endif
         </div>
 
-        <div class="col-lg-5">
+        <div class="ficha-info">
             <div class="mb-2">@include('vehiculos._badges')</div>
             <h1 class="mb-1">{{ $vehiculo->marca }} {{ $vehiculo->modelo }}</h1>
             <p class="precio-detalle">U$S {{ number_format($vehiculo->precio, 0, ',', '.') }}</p>
@@ -110,9 +113,6 @@
                 </section>
             @endif
 
-            {{-- Descripción completa (o el texto armado con los datos si está vacía) --}}
-            <p class="detalle-descripcion">{{ $vehiculo->resumen }}</p>
-
             <div class="datos-grilla">
                 @foreach ($datos as [$icono, $etiqueta, $valor])
                     <div class="dato-mini">
@@ -140,6 +140,9 @@
             {{-- Pedir turno para conocer o probar el vehículo (RF-13): solo Cliente; el visitante recibe la invitación --}}
             @include('turnos._cta')
         </div>
+
+        {{-- Panel "Descripción" con edición rápida para Empleado y Admin (si no hay nada para mostrar, no se dibuja) --}}
+        @include('vehiculos._descripcion')
     </div>
 
     {{-- Reseñas de clientes (RF-14): solo las aprobadas; si no hay ninguna, no se muestra nada --}}

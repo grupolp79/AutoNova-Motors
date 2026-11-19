@@ -26,7 +26,7 @@
                 <div class="col">
                     <div class="card h-100 shadow-sm">
                         @if ($portada)
-                            <img src="{{ $portada->ruta }}" class="card-img-top object-fit-cover" style="height: 180px"
+                            <img src="{{ $portada->url }}" class="card-img-top object-fit-cover" style="height: 180px"
                                  alt="{{ $vehiculo->marca }} {{ $vehiculo->modelo }}">
                         @else
                             <div class="bg-secondary-subtle d-flex align-items-center justify-content-center text-muted"

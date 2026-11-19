@@ -53,7 +53,16 @@
 
         {{-- Tabla lado a lado: una columna por vehículo. En el celular se desplaza de costado. --}}
         <div class="tarjeta-tabla table-responsive">
-            <table class="table tabla-autonova tabla-comparar mb-0">
+            {{-- --columnas: cuántos vehículos hay; en el celular la tabla se arma con ese ancho y se desliza de costado --}}
+            <table class="table tabla-autonova tabla-comparar mb-0" style="--columnas: {{ $vehiculos->count() }}">
+                {{-- Anchos de las columnas: la de etiquetas fija y los vehículos en partes iguales,
+                     sin importar el tamaño de las fotos (table-layout: fixed en autonova.css) --}}
+                <colgroup>
+                    <col class="col-etiqueta">
+                    @foreach ($vehiculos as $vehiculo)
+                        <col class="col-vehiculo">
+                    @endforeach
+                </colgroup>
                 <thead>
                     <tr>
                         <th scope="col" class="dato-nombre"><span class="visually-hidden">Dato</span></th>
@@ -61,7 +70,7 @@
                             <th scope="col">
                                 <a href="{{ route('vehiculos.show', $vehiculo) }}" class="comparar-foto d-block">
                                     @if ($portada = $vehiculo->fotos->first())
-                                        <img src="{{ $portada->ruta }}" alt="{{ $vehiculo->marca }} {{ $vehiculo->modelo }}">
+                                        <img src="{{ $portada->url }}" alt="{{ $vehiculo->marca }} {{ $vehiculo->modelo }}">
                                     @else
                                         <span class="sin-foto"><i class="bi bi-camera" aria-hidden="true"></i> Sin foto</span>
                                     @endif

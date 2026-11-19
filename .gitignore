@@ -27,3 +27,7 @@ Thumbs.db
 /CLAUDE.md
 /.claude
 /docs/CAMBIOS.md
+
+# Fotos de vehículos subidas desde la aplicación: se quedan en el servidor, no van al repositorio
+/public/uploads/vehiculos/*
+!/public/uploads/vehiculos/.gitkeep

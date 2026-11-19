@@ -22,6 +22,10 @@ class Vehiculo extends Model
     // Largo máximo de la mini descripción (se valida en VehiculoController)
     const DESCRIPCION_MAX = 500;
 
+    // Fotos por vehículo: como máximo 10 entre URLs y archivos; cada archivo hasta 5 MB (en KB, como pide Laravel)
+    const MAX_FOTOS = 10;
+    const FOTO_MAX_KB = 5120;
+
     protected $fillable = [
         'marca', 'modelo', 'anio', 'precio', 'kilometraje',
         'transmision', 'combustible', 'estado', 'destacado', 'descripcion',

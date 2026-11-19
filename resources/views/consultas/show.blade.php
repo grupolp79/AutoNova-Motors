@@ -49,7 +49,7 @@
             <div class="card mb-3">
                 <div class="card-body d-flex flex-wrap gap-3">
                     @if ($portada)
-                        <img src="{{ $portada->ruta }}" class="miniatura-vehiculo" alt="{{ $v->marca }} {{ $v->modelo }}">
+                        <img src="{{ $portada->url }}" class="miniatura-vehiculo" alt="{{ $v->marca }} {{ $v->modelo }}">
                     @endif
                     <div>
                         <h2 class="h6 text-uppercase text-muted">Vehículo</h2>

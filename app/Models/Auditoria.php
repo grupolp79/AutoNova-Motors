@@ -24,6 +24,7 @@ class Auditoria extends Model
         'vehiculo.crear' => 'Creó un vehículo',
         'vehiculo.editar' => 'Editó un vehículo',
         'vehiculo.eliminar' => 'Eliminó un vehículo',
+        'vehiculo.descripcion' => 'Editó la descripción de un vehículo',
         'consulta.avanzar' => 'Avanzó una consulta',
         'consulta.contacto' => 'Registró un contacto',
         'turno.estado' => 'Cambió el estado de un turno',

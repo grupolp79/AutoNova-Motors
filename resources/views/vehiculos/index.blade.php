@@ -218,7 +218,7 @@
                                 {{-- La foto también lleva al detalle; tabindex -1 para no repetir el foco del botón "Ver detalle" --}}
                                 <a href="{{ $detalle }}" class="tarjeta-foto d-block" tabindex="-1">
                                     @if ($portada)
-                                        <img src="{{ $portada->ruta }}" loading="lazy"
+                                        <img src="{{ $portada->url }}" loading="lazy"
                                              alt="{{ $vehiculo->marca }} {{ $vehiculo->modelo }}">
                                     @else
                                         <div class="sin-foto">

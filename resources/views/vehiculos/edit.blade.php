@@ -5,7 +5,8 @@
 @section('contenido')
     <h1 class="mb-4">Editar {{ $vehiculo->marca }} {{ $vehiculo->modelo }}</h1>
 
-    <form action="{{ route('vehiculos.update', $vehiculo) }}" method="POST">
+    {{-- multipart/form-data: hace falta para poder mandar archivos (fotos) --}}
+    <form action="{{ route('vehiculos.update', $vehiculo) }}" method="POST" enctype="multipart/form-data">
         @csrf
         {{-- La ruta update espera PUT; el formulario lo simula con este campo oculto --}}
         @method('PUT')

@@ -39,6 +39,8 @@ class AuditoriaTest extends TestCase
             'marca' => $v->marca, 'modelo' => $v->modelo, 'anio' => $v->anio, 'precio' => $v->precio,
             'kilometraje' => $v->kilometraje, 'transmision' => $v->transmision,
             'combustible' => $v->combustible, 'estado' => $v->estado,
+            // Sin fotos nuevas: estas pruebas miran solo los cambios de datos (las fotos se prueban en FotoVehiculoTest)
+            'fotos' => '',
         ]);
     }
 
@@ -90,7 +92,7 @@ class AuditoriaTest extends TestCase
 
         $this->actingAs($this->empleado())->put("/vehiculos/{$v->id}", $this->datosDe($v));
 
-        $this->assertSame('Toyota Corolla 2020. Sin cambios en los datos (fotos actualizadas).', $this->unico()->detalle);
+        $this->assertSame('Toyota Corolla 2020. Sin cambios.', $this->unico()->detalle);
     }
 
     public function test_eliminar_un_vehiculo_deja_un_registro_que_sobrevive_al_vehiculo(): void

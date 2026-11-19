@@ -208,6 +208,34 @@ class ComparadorTest extends TestCase
     }
 
     #[Group('RF-08')]
+    public function test_columnas_de_igual_ancho_y_cada_foto_dentro_de_su_marco(): void
+    {
+        // Una foto subida (chica) y una externa: las dos van en el mismo marco, sin importar su tamaño
+        $a = $this->vehiculo(['modelo' => 'Corolla']);
+        $b = $this->vehiculo(['modelo' => 'Yaris']);
+        $c = $this->vehiculo(['modelo' => 'Hilux']);
+        $a->fotos()->create(['ruta' => '/uploads/vehiculos/' . $a->id . '/chica.png', 'orden' => 0]);
+        $b->fotos()->create(['ruta' => 'https://ejemplo.com/panoramica.jpg', 'orden' => 0]);
+
+        $html = $this->withSession(['comparar' => [$a->id, $b->id, $c->id]])->get('/comparar')->assertOk()
+            ->assertSee('style="--columnas: 3"', false)
+            ->getContent();
+
+        // Una <col> para las etiquetas y una por vehículo: los anchos no dependen de las fotos
+        preg_match('#<colgroup>(.*?)</colgroup>#s', $html, $colgroup);
+        $this->assertSame(1, substr_count($colgroup[1], 'class="col-etiqueta"'));
+        $this->assertSame(3, substr_count($colgroup[1], 'class="col-vehiculo"'));
+
+        // Cada foto (y el "Sin foto") está dentro del marco .comparar-foto
+        $this->assertMatchesRegularExpression('#class="comparar-foto d-block">\s*<img src="' . preg_quote(asset('uploads/vehiculos/' . $a->id . '/chica.png'), '#') . '"#', $html);
+        $this->assertMatchesRegularExpression('#class="comparar-foto d-block">\s*<img src="https://ejemplo\.com/panoramica\.jpg"#', $html);
+        $this->assertMatchesRegularExpression('#class="comparar-foto d-block">\s*<span class="sin-foto">#', $html);
+        $this->assertSame(3, substr_count($html, 'class="comparar-foto d-block"'));
+        // La imagen no trae ancho ni alto propios que agranden o achiquen la columna
+        $this->assertDoesNotMatchRegularExpression('#<img[^>]+(width|height)=#', substr($html, strpos($html, '<table')));
+    }
+
+    #[Group('RF-08')]
     public function test_marca_el_menor_precio_el_menor_km_y_el_anio_mas_nuevo(): void
     {
         $caro = $this->vehiculo(['anio' => 2024, 'precio' => 30000, 'kilometraje' => 10000]);

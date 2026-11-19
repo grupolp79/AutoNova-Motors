@@ -20,7 +20,7 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-3">
                     @if ($portada)
-                        <img src="{{ $portada->ruta }}" class="miniatura-vehiculo" alt="{{ $v->marca }} {{ $v->modelo }}">
+                        <img src="{{ $portada->url }}" class="miniatura-vehiculo" alt="{{ $v->marca }} {{ $v->modelo }}">
                     @else
                         <div class="miniatura-vehiculo"></div>
                     @endif

@@ -26,7 +26,7 @@
         <div class="card-body">
             <div class="d-flex flex-wrap gap-3 mb-3">
                 @if ($portada)
-                    <img src="{{ $portada->ruta }}" class="miniatura-vehiculo" alt="{{ $v->marca }} {{ $v->modelo }}">
+                    <img src="{{ $portada->url }}" class="miniatura-vehiculo" alt="{{ $v->marca }} {{ $v->modelo }}">
                 @endif
                 <div>
                     <div class="fw-bold fs-5">{{ $v->marca }} {{ $v->modelo }}</div>

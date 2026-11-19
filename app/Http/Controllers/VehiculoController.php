@@ -4,24 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
 use App\Models\Vehiculo;
+use App\Models\VehiculoFoto;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class VehiculoController extends Controller implements HasMiddleware
 {
+    // Regla y mensaje de la descripción: los mismos en el formulario completo y en la edición rápida de la ficha
+    private const REGLA_DESCRIPCION = 'nullable|string|max:' . Vehiculo::DESCRIPCION_MAX;
+    private const MENSAJE_DESCRIPCION_LARGA = 'La descripción puede tener hasta :max caracteres. Acortala un poco y volvé a guardar.';
+
     /**
      * Permisos por rol. El catálogo (index) y el detalle (show) son públicos (RF-02).
-     * Alta y modificación: Empleado y Admin (RF-01). Baja: solo Admin (RF-10).
+     * Alta y modificación (también la edición rápida de la descripción): Empleado y Admin (RF-01). Baja: solo Admin (RF-10).
      */
     public static function middleware(): array
     {
         return [
-            new Middleware('rol:empleado,admin', only: ['create', 'store', 'edit', 'update']),
+            new Middleware('rol:empleado,admin', only: ['create', 'store', 'edit', 'update', 'actualizarDescripcion']),
             new Middleware('rol:admin', only: ['destroy']),
         ];
     }
@@ -57,21 +65,31 @@ class VehiculoController extends Controller implements HasMiddleware
 
     public function store(Request $request)
     {
-        [$datos, $urls] = $this->validar($request);
+        [$datos, $urls, $archivos] = $this->validar($request);
 
-        // Transacción: si falla al guardar las fotos, no queda el vehículo a medias
-        $vehiculo = DB::transaction(function () use ($datos, $urls) {
-            $vehiculo = Vehiculo::create($datos);
-            $this->guardarFotos($vehiculo, $urls);
+        // Archivos que se escriben en el disco: si algo falla, se borran (la base se deshace sola con la transacción)
+        $escritos = [];
 
-            // Auditoría dentro de la misma transacción: si algo falla, no queda ni el vehículo ni el registro
-            Auditoria::registrar('vehiculo.crear',
-                "Alta de {$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio}: " . $this->textoCampo('precio', $vehiculo->precio)
-                . ', estado ' . $this->textoCampo('estado', $vehiculo->estado) . '.',
-                $vehiculo);
+        try {
+            // Transacción: si falla al guardar las fotos, no queda el vehículo a medias.
+            // El id existe recién después de create(), por eso los archivos se guardan después.
+            $vehiculo = DB::transaction(function () use ($datos, $urls, $archivos, &$escritos) {
+                $vehiculo = Vehiculo::create($datos);
+                $orden = $this->guardarUrls($vehiculo, $urls, 0);
+                $this->guardarArchivos($vehiculo, $archivos, $orden, $escritos);
 
-            return $vehiculo;
-        });
+                // Auditoría dentro de la misma transacción: si algo falla, no queda ni el vehículo ni el registro
+                Auditoria::registrar('vehiculo.crear',
+                    "Alta de {$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio}: " . $this->textoCampo('precio', $vehiculo->precio)
+                    . ', estado ' . $this->textoCampo('estado', $vehiculo->estado) . '.',
+                    $vehiculo);
+
+                return $vehiculo;
+            });
+        } catch (Throwable $e) {
+            $this->borrarArchivos($escritos);
+            throw $e;
+        }
 
         return redirect()->route('vehiculos.show', $vehiculo)
             ->with('success', 'Vehículo creado correctamente.');
@@ -92,24 +110,51 @@ class VehiculoController extends Controller implements HasMiddleware
         return view('vehiculos.edit', compact('vehiculo'));
     }
 
+    /**
+     * Guardar la edición. Las fotos NO se reemplazan todas: se conservan las que ya tenía (con su orden),
+     * se quitan las marcadas con "Quitar" (y las URLs que se borraron del textarea),
+     * y las nuevas (URLs y archivos) van al final.
+     */
     public function update(Request $request, Vehiculo $vehiculo)
     {
-        [$datos, $urls] = $this->validar($request);
+        $vehiculo->load('fotos');
+        [$datos, $urls, $archivos, $aQuitar, $urlsNuevas] = $this->validar($request, $vehiculo);
 
-        DB::transaction(function () use ($vehiculo, $datos, $urls) {
-            // fill() carga los datos nuevos sin guardar: así se puede ver qué cambió antes de save()
-            $vehiculo->fill($datos);
-            $cambios = $this->describirCambios($vehiculo);
-            $vehiculo->save();
+        $escritos = [];
 
-            // Las fotos se reemplazan: se borran las anteriores y se cargan las del textarea
-            $vehiculo->fotos()->delete();
-            $this->guardarFotos($vehiculo, $urls);
+        try {
+            DB::transaction(function () use ($vehiculo, $datos, $archivos, $aQuitar, $urlsNuevas, &$escritos) {
+                // fill() carga los datos nuevos sin guardar: así se puede ver qué cambió antes de save()
+                $vehiculo->fill($datos);
+                $cambios = $this->describirCambios($vehiculo);
+                $vehiculo->save();
 
-            Auditoria::registrar('vehiculo.editar',
-                "{$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio}. " . ($cambios ?: 'Sin cambios en los datos (fotos actualizadas).'),
-                $vehiculo);
-        });
+                // Fotos: se quitan las elegidas y las nuevas van después de la última que queda
+                VehiculoFoto::whereIn('id', $aQuitar->pluck('id'))->delete();
+                $orden = (int) $vehiculo->fotos()->max('orden') + 1;
+                $orden = $this->guardarUrls($vehiculo, $urlsNuevas, $orden);
+                $this->guardarArchivos($vehiculo, $archivos, $orden, $escritos);
+
+                // En la auditoría van solo las cantidades de fotos, nunca nombres de archivo
+                $agregadas = count($urlsNuevas) + count($archivos);
+                $partes = array_filter([
+                    $cambios,
+                    $agregadas || $aQuitar->isNotEmpty() ? $this->textoFotos($agregadas, $aQuitar->count()) : '',
+                ]);
+
+                Auditoria::registrar('vehiculo.editar',
+                    "{$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio}. " . ($partes ? implode(' ', $partes) : 'Sin cambios.'),
+                    $vehiculo);
+            });
+        } catch (Throwable $e) {
+            // Falló: se borran los archivos nuevos; los de las fotos quitadas siguen en su lugar
+            $this->borrarArchivos($escritos);
+            throw $e;
+        }
+
+        // Recién con la base ya guardada se borran del disco los archivos de las fotos quitadas
+        // (una URL externa solo se quita de la base: no hay archivo propio)
+        $this->borrarArchivos($aQuitar->map->rutaEnDisco()->filter()->all());
 
         return redirect()->route('vehiculos.show', $vehiculo)
             ->with('success', 'Vehículo actualizado correctamente.');
@@ -151,8 +196,39 @@ class VehiculoController extends Controller implements HasMiddleware
                 ->with('error', 'No se puede eliminar este vehículo porque otros registros dependen de él.');
         }
 
+        // Ya eliminado en la base: se borra del disco la carpeta con sus fotos subidas (si tenía)
+        Storage::disk('vehiculos')->deleteDirectory((string) $vehiculo->id);
+
         return redirect()->route('vehiculos.index')
             ->with('success', 'Vehículo eliminado correctamente.');
+    }
+
+    /**
+     * Edición rápida de la descripción desde la ficha del vehículo (panel "Descripción").
+     * Enviarla vacía borra la descripción. Los errores van en su propia "bolsa" ('descripcion')
+     * para mostrarlos dentro del panel y no mezclarlos con otros formularios de la ficha.
+     */
+    public function actualizarDescripcion(Request $request, Vehiculo $vehiculo)
+    {
+        $datos = $request->validateWithBag('descripcion', [
+            'descripcion' => self::REGLA_DESCRIPCION,
+        ], [
+            'descripcion.max' => self::MENSAJE_DESCRIPCION_LARGA,
+        ]);
+
+        // Solo espacios o vacío = sin descripción
+        $texto = filled($datos['descripcion'] ?? null) ? trim($datos['descripcion']) : null;
+
+        DB::transaction(function () use ($vehiculo, $texto) {
+            $vehiculo->update(['descripcion' => $texto]);
+
+            // En la auditoría va solo qué vehículo y si se cambió o se borró: NUNCA el texto
+            Auditoria::registrar('vehiculo.descripcion',
+                "{$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio}: " . ($texto === null ? 'descripción borrada.' : 'descripción actualizada.'),
+                $vehiculo);
+        });
+
+        return redirect()->route('vehiculos.show', $vehiculo)->with('success', 'Descripción actualizada');
     }
 
     /**
@@ -285,9 +361,11 @@ class VehiculoController extends Controller implements HasMiddleware
     }
 
     /**
-     * Valida los datos del formulario. Devuelve los datos del vehículo y la lista de URLs de fotos.
+     * Valida los datos del formulario (alta y edición).
+     * Devuelve [datos del vehículo, URLs del textarea, archivos subidos, fotos a quitar, URLs nuevas].
+     * Las dos últimas solo tienen sentido al editar ($vehiculo con sus fotos ya cargadas).
      */
-    private function validar(Request $request): array
+    private function validar(Request $request, ?Vehiculo $vehiculo = null): array
     {
         // Se separa el textarea en líneas, se sacan espacios y líneas vacías
         $urls = collect(preg_split('/\r\n|\r|\n/', (string) $request->input('fotos')))
@@ -310,17 +388,43 @@ class VehiculoController extends Controller implements HasMiddleware
             'combustible' => 'required|in:' . implode(',', array_keys(Vehiculo::COMBUSTIBLES)),
             'estado' => 'required|in:' . implode(',', array_keys(Vehiculo::ESTADOS)),
             // Mini descripción opcional; si viene vacía se guarda null (middleware ConvertEmptyStringsToNull)
-            'descripcion' => 'nullable|string|max:' . Vehiculo::DESCRIPCION_MAX,
+            'descripcion' => self::REGLA_DESCRIPCION,
             'fotos' => 'nullable|string',
             // Cada línea tiene que ser una URL http/https (la columna 'ruta' admite hasta 255 caracteres)
-            'lista_fotos' => 'array|max:255',
+            'lista_fotos' => 'array',
             'lista_fotos.*' => 'url:http,https|max:255',
+            // Fotos subidas como archivo: solo imágenes JPG, PNG o WebP de hasta 5 MB.
+            // 'image' y 'mimes' miran el CONTENIDO del archivo, no el nombre; SVG no se acepta porque puede llevar scripts.
+            'archivos' => 'nullable|array',
+            'archivos.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:' . Vehiculo::FOTO_MAX_KB,
+            // Casillas "Quitar" de la edición: ids de fotos
+            'quitar' => 'nullable|array',
+            'quitar.*' => 'integer',
         ], [
             'lista_fotos.*.url' => 'La línea :position de fotos no es una URL válida.',
             'lista_fotos.*.max' => 'La línea :position de fotos es demasiado larga (máx. 255 caracteres).',
-            'lista_fotos.max' => 'Se permiten como máximo 255 fotos.',
-            'descripcion.max' => 'La descripción puede tener hasta :max caracteres. Acortala un poco y volvé a guardar.',
+            'descripcion.max' => self::MENSAJE_DESCRIPCION_LARGA,
+            // 'uploaded': el archivo no llegó bien, por ejemplo porque supera upload_max_filesize de PHP
+            'archivos.*.uploaded' => 'La foto :position no se pudo subir: puede pesar más de lo que acepta el servidor. Probá con una de hasta 5 MB.',
+            'archivos.*.file' => 'La foto :position no se pudo subir. Probá elegirla de nuevo.',
+            'archivos.*.image' => 'La foto :position no es una imagen JPG, PNG o WebP.',
+            'archivos.*.mimes' => 'La foto :position no es una imagen JPG, PNG o WebP.',
+            'archivos.*.max' => 'La foto :position pesa más de 5 MB. Achicala o elegí otra.',
+            'archivos.array' => 'No se pudieron leer las fotos elegidas. Probá de nuevo.',
         ]);
+
+        $archivos = $request->file('archivos', []);
+
+        // Al editar: qué fotos se quitan y qué URLs son nuevas
+        [$aQuitar, $urlsNuevas] = $vehiculo ? $this->planDeFotos($vehiculo, $urls, $request->input('quitar', [])) : [collect(), $urls];
+
+        // Tope de fotos por vehículo, contando las que quedan, las URLs nuevas y los archivos
+        $quedan = $vehiculo ? $vehiculo->fotos->count() - $aQuitar->count() : 0;
+        if ($quedan + count($urlsNuevas) + count($archivos) > Vehiculo::MAX_FOTOS) {
+            throw ValidationException::withMessages([
+                'fotos' => 'Cada vehículo puede tener hasta ' . Vehiculo::MAX_FOTOS . ' fotos entre URLs y archivos. Quitá alguna y volvé a guardar.',
+            ]);
+        }
 
         // Solo el Admin puede marcar destacados (RF-12). Para el Empleado el campo ni se muestra:
         // al crear queda en falso y al editar se conserva el valor que ya tenía.
@@ -328,18 +432,75 @@ class VehiculoController extends Controller implements HasMiddleware
         if ($request->user()?->esAdmin()) {
             $datos['destacado'] = $request->boolean('destacado');
         }
-        unset($datos['fotos'], $datos['lista_fotos']);
+        unset($datos['fotos'], $datos['lista_fotos'], $datos['archivos'], $datos['quitar']);
 
-        return [$datos, $urls];
+        return [$datos, $urls, $archivos, $aQuitar, $urlsNuevas];
+    }
+
+    /**
+     * Qué pasa con las fotos al editar:
+     *   - se quitan las marcadas con "Quitar" (solo se aceptan ids de fotos de ESTE vehículo)
+     *     y las URLs externas que se borraron del textarea (el textarea muestra solo las externas);
+     *   - son nuevas las URLs del textarea que el vehículo todavía no tenía.
+     * Las fotos subidas no están en el textarea, así que editar sin tocar nada no las pierde.
+     * Devuelve [colección de VehiculoFoto a quitar, array de URLs nuevas].
+     */
+    private function planDeFotos(Vehiculo $vehiculo, array $urls, array $quitarIds): array
+    {
+        $quitarIds = array_map('intval', $quitarIds);
+
+        $aQuitar = $vehiculo->fotos->filter(fn (VehiculoFoto $foto) => in_array($foto->id, $quitarIds, true)
+            || (! $foto->esSubida() && ! in_array($foto->ruta, $urls, true)));
+
+        // URLs que ya tiene (y quedan) o que se quitaron a propósito: no se vuelven a agregar
+        $conocidas = $vehiculo->fotos->reject->esSubida()->pluck('ruta')->all();
+
+        $urlsNuevas = collect($urls)->unique()->reject(fn ($url) => in_array($url, $conocidas, true))->values()->all();
+
+        return [$aQuitar->values(), $urlsNuevas];
     }
 
     /**
      * Crea una foto por cada URL; el orden es el de las líneas del textarea.
      */
-    private function guardarFotos(Vehiculo $vehiculo, array $urls): void
+    /** Guarda las URLs externas desde el orden indicado. Devuelve el orden que sigue. */
+    private function guardarUrls(Vehiculo $vehiculo, array $urls, int $orden): int
     {
-        foreach ($urls as $i => $url) {
-            $vehiculo->fotos()->create(['ruta' => $url, 'orden' => $i]);
+        foreach ($urls as $url) {
+            $vehiculo->fotos()->create(['ruta' => $url, 'orden' => $orden++]);
         }
+
+        return $orden;
+    }
+
+    /**
+     * Guarda los archivos subidos en el disco 'vehiculos', carpeta {id del vehículo}.
+     * store() usa hashName(): un nombre aleatorio con la extensión del tipo REAL del archivo
+     * (detectado por su contenido), nunca el nombre que mandó el usuario.
+     * $escritos junta las rutas escritas para poder borrarlas si después algo falla.
+     */
+    private function guardarArchivos(Vehiculo $vehiculo, array $archivos, int $orden, array &$escritos): void
+    {
+        foreach ($archivos as $archivo) {
+            $ruta = $archivo->store((string) $vehiculo->id, 'vehiculos'); // "5/Xy7...40 letras.jpg"
+            $escritos[] = $ruta;
+
+            $vehiculo->fotos()->create(['ruta' => VehiculoFoto::PREFIJO_SUBIDAS . $ruta, 'orden' => $orden++]);
+        }
+    }
+
+    /** Borra archivos del disco 'vehiculos' (rutas dentro del disco). */
+    private function borrarArchivos(array $rutas): void
+    {
+        if ($rutas) {
+            Storage::disk('vehiculos')->delete($rutas);
+        }
+    }
+
+    /** "Fotos: 2 agregadas, 1 quitada." para la auditoría. */
+    private function textoFotos(int $agregadas, int $quitadas): string
+    {
+        return 'Fotos: ' . $agregadas . ($agregadas === 1 ? ' agregada' : ' agregadas')
+            . ', ' . $quitadas . ($quitadas === 1 ? ' quitada' : ' quitadas') . '.';
     }
 }

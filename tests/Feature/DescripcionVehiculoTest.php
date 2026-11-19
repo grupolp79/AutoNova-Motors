@@ -120,8 +120,11 @@ class DescripcionVehiculoTest extends TestCase
         $this->assertSame('Año 2020, 50.000 km. Caja manual y motor a nafta.', $usado->resumen);
         $this->assertSame('0 km, modelo 2026. Caja automática y motor híbrido.', $cerokm->resumen);
 
-        $this->get('/vehiculos')->assertSee('Año 2020, 50.000 km. Caja manual y motor a nafta.');
-        $this->get("/vehiculos/{$cerokm->id}")->assertSee('0 km, modelo 2026. Caja automática y motor híbrido.');
+        // El texto armado se usa en las tarjetas del catálogo...
+        $this->get('/vehiculos')->assertSee('Año 2020, 50.000 km. Caja manual y motor a nafta.')
+            ->assertSee('0 km, modelo 2026. Caja automática y motor híbrido.');
+        // ...pero en la ficha, sin descripción, el visitante no ve el panel ni ese texto (ver DescripcionFichaTest)
+        $this->get("/vehiculos/{$cerokm->id}")->assertDontSee('0 km, modelo 2026. Caja automática y motor híbrido.');
     }
 
     #[Group('RF-02')]

@@ -25,6 +25,9 @@ Route::redirect('/', '/vehiculos');
 //   index y show: públicos · create, store, edit, update: empleado y admin · destroy: solo admin
 Route::resource('vehiculos', VehiculoController::class);
 
+// Edición rápida de la descripción desde la ficha: mismo permiso que "Editar" (empleado y admin, en el controlador)
+Route::patch('/vehiculos/{vehiculo}/descripcion', [VehiculoController::class, 'actualizarDescripcion'])->name('vehiculos.descripcion');
+
 // Sesión: el login y el registro solo los ve quien no inició sesión; el login se limita a 5 intentos por minuto
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
