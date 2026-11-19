@@ -81,4 +81,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Lead::class, 'usuario_id');
     }
+
+    // Turnos de prueba que pidió el usuario cuando es cliente (RF-13)
+    public function turnos()
+    {
+        return $this->hasMany(Turno::class, 'usuario_id');
+    }
 }

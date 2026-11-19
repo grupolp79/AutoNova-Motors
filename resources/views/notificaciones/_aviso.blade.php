@@ -5,6 +5,8 @@
         'nueva_consulta' => 'bi-chat-dots-fill',
         'estado_consulta' => 'bi-arrow-right-circle-fill',
         'contacto_consulta' => 'bi-telephone-fill',
+        'nuevo_turno' => 'bi-calendar-plus-fill',
+        'estado_turno' => 'bi-calendar-check-fill',
         default => 'bi-bell-fill',
     };
     $sinLeer = $aviso->read_at === null;

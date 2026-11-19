@@ -253,7 +253,10 @@
                                     @endif
 
                                     <div class="tarjeta-pie">
-                                        <a href="{{ $detalle }}" class="btn btn-dark {{ $gestion ? 'btn-sm flex-grow-1' : 'w-100' }}">Ver detalle</a>
+                                        <a href="{{ $detalle }}" class="btn btn-dark {{ $gestion ? 'btn-sm' : '' }} flex-grow-1">Ver detalle</a>
+
+                                        {{-- Comparar (todos los perfiles); su formulario está al final de la página --}}
+                                        @include('comparador._boton', ['formulario' => 'comparar-' . $vehiculo->id])
 
                                         {{-- Editar: Empleado y Admin. Eliminar: solo Admin (su formulario está al final de la página) --}}
                                         @if ($gestion)
@@ -286,6 +289,15 @@
         un formulario dentro de otro; cada botón de la tarjeta los envía con el atributo form="eliminar-ID".
         Los formularios no soportan DELETE: @method lo simula y @csrf protege el envío.
     --}}
+    {{-- Formularios de "Comparar" (agregar o quitar), uno por tarjeta, por el mismo motivo --}}
+    @php $elegidos = \App\Http\Controllers\ComparadorController::elegidos(); @endphp
+    @foreach ($vehiculos as $vehiculo)
+        <form id="comparar-{{ $vehiculo->id }}" method="POST" class="d-none"
+              action="{{ in_array($vehiculo->id, $elegidos) ? route('comparador.quitar', $vehiculo->id) : route('comparador.agregar', $vehiculo) }}">
+            @csrf
+        </form>
+    @endforeach
+
     @if ($esAdmin)
         @foreach ($vehiculos as $vehiculo)
             <form id="eliminar-{{ $vehiculo->id }}" action="{{ route('vehiculos.destroy', $vehiculo) }}" method="POST" class="d-none"

@@ -125,6 +125,9 @@
                 @endforeach
             </div>
 
+            {{-- Comparar (RF-08): lo ven todos los perfiles --}}
+            @include('comparador._boton')
+
             {{-- Favoritos (RF-11): el cliente guarda el vehículo; el visitante recibe la invitación a iniciar sesión --}}
             @include('favoritos._boton')
 
@@ -133,6 +136,9 @@
 
             {{-- Consultar por el vehículo (RF-03): el bloque cambia según el rol de quien mira --}}
             @include('consultas._cta')
+
+            {{-- Pedir turno para conocer o probar el vehículo (RF-13): solo Cliente; el visitante recibe la invitación --}}
+            @include('turnos._cta')
         </div>
     </div>
 @endsection

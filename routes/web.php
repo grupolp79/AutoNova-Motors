@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ComparadorController;
 use App\Http\Controllers\ConsultaController;
 use App\Http\Controllers\FavoritoController;
 use App\Http\Controllers\InteraccionController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\PrecioReferenciaController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\TurnoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VehiculoController;
 use Illuminate\Support\Facades\Route;
@@ -64,3 +66,18 @@ Route::delete('/vehiculos/{vehiculo}/favorito', [FavoritoController::class, 'des
 Route::get('/notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
 Route::post('/notificaciones/leer-todas', [NotificacionController::class, 'leerTodas'])->name('notificaciones.leer-todas');
 Route::post('/notificaciones/{id}/leer', [NotificacionController::class, 'leer'])->name('notificaciones.leer');
+
+// Comparador (RF-08): público, como el catálogo. La selección (hasta 3 vehículos) se guarda en la sesión.
+// whereNumber evita que "vaciar" se confunda con el id de un vehículo.
+Route::get('/comparar', [ComparadorController::class, 'index'])->name('comparador.index');
+Route::post('/comparar/vaciar', [ComparadorController::class, 'vaciar'])->name('comparador.vaciar');
+Route::post('/comparar/{vehiculo}', [ComparadorController::class, 'agregar'])->whereNumber('vehiculo')->name('comparador.agregar');
+Route::post('/comparar/{id}/quitar', [ComparadorController::class, 'quitar'])->whereNumber('id')->name('comparador.quitar');
+
+// Turnos de prueba (RF-13): el cliente pide, ve y cancela los suyos; Empleado y Admin manejan la agenda.
+// Los permisos por rol están en TurnoController::middleware().
+Route::post('/vehiculos/{vehiculo}/turno', [TurnoController::class, 'store'])->name('turnos.store');
+Route::get('/mis-turnos', [TurnoController::class, 'mios'])->name('turnos.mios');
+Route::patch('/mis-turnos/{turno}/cancelar', [TurnoController::class, 'cancelar'])->name('turnos.cancelar');
+Route::get('/turnos', [TurnoController::class, 'index'])->name('turnos.index');
+Route::patch('/turnos/{turno}/estado', [TurnoController::class, 'cambiarEstado'])->name('turnos.estado');

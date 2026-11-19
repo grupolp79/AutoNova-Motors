@@ -9,8 +9,8 @@ use Illuminate\Routing\Controllers\Middleware;
 
 /**
  * Campanita de avisos. La usan los tres roles, cada uno con sus propios avisos:
- *   Empleado y Admin: llega una consulta nueva.
- *   Cliente:          su consulta avanza de estado o el equipo se comunica.
+ *   Empleado y Admin: llega una consulta nueva o un cliente pide un turno.
+ *   Cliente:          su consulta avanza de estado, el equipo se comunica o le cambian el estado de un turno.
  * Siempre se trabaja sobre $request->user()->notifications(): nadie puede ver ni marcar los avisos de otro.
  */
 class NotificacionController extends Controller implements HasMiddleware
@@ -29,12 +29,19 @@ class NotificacionController extends Controller implements HasMiddleware
         ]);
     }
 
-    /** Marca un aviso como leído y lleva a la consulta a la que se refiere. */
+    /** Marca un aviso como leído y lleva a la consulta (o al turno) al que se refiere. */
     public function leer(Request $request, string $id)
     {
         // Se busca solo entre los avisos del usuario: el de otra persona da 404
         $aviso = $request->user()->notifications()->findOrFail($id);
         $aviso->markAsRead();
+
+        // Avisos de turnos (RF-13): el equipo va a la agenda; el cliente a "Mis turnos"
+        if (isset($aviso->data['turno_id'])) {
+            return $request->user()->puedeGestionar()
+                ? redirect()->route('turnos.index')
+                : redirect()->route('turnos.mios');
+        }
 
         $lead = Lead::find($aviso->data['lead_id'] ?? null);
         if (! $lead) {

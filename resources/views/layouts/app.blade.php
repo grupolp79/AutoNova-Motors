@@ -37,6 +37,17 @@
                        href="{{ route('vehiculos.index') }}">Catálogo</a>
                 </li>
 
+                {{-- Comparador (RF-08): todos los perfiles; aparece cuando hay al menos un vehículo elegido --}}
+                @php $paraComparar = count(\App\Http\Controllers\ComparadorController::elegidos()); @endphp
+                @if ($paraComparar > 0)
+                    <li class="nav-item">
+                        <a class="nav-link @if (request()->routeIs('comparador.index')) active @endif"
+                           href="{{ route('comparador.index') }}">
+                            <i class="bi bi-layout-three-columns" aria-hidden="true"></i> Comparar ({{ $paraComparar }})
+                        </a>
+                    </li>
+                @endif
+
                 @auth
                     {{-- Alta de vehículos: Empleado y Admin --}}
                     @if (auth()->user()->puedeGestionar())
@@ -56,6 +67,10 @@
                             <a class="nav-link @if (request()->routeIs('favoritos.index')) active @endif"
                                href="{{ route('favoritos.index') }}">Favoritos</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('turnos.mios')) active @endif"
+                               href="{{ route('turnos.mios') }}">Mis turnos</a>
+                        </li>
                     @elseif (auth()->user()->puedeGestionar())
                         @php $nuevas = \App\Models\Lead::where('estado', 'nuevo')->count(); @endphp
                         <li class="nav-item">
@@ -63,6 +78,15 @@
                                href="{{ route('consultas.index') }}">
                                 Consultas
                                 @if ($nuevas > 0) <span class="badge rounded-pill text-bg-danger">{{ $nuevas }}</span> @endif
+                            </a>
+                        </li>
+                        {{-- Agenda de turnos (RF-13), con la cantidad de turnos pendientes de confirmar --}}
+                        @php $turnosPendientes = \App\Models\Turno::where('estado', 'pendiente')->count(); @endphp
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('turnos.index')) active @endif"
+                               href="{{ route('turnos.index') }}">
+                                Turnos
+                                @if ($turnosPendientes > 0) <span class="badge rounded-pill text-bg-warning">{{ $turnosPendientes }}</span> @endif
                             </a>
                         </li>
                     @endif

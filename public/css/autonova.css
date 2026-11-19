@@ -1103,3 +1103,137 @@ a:focus-visible,
 .avisos-lista .aviso-form:last-child .aviso {
     border-bottom: 0;
 }
+
+/* ===== 14. Comparador (RF-08) ===== */
+/* Botón "Comparar" de las tarjetas y del detalle; cuando el vehículo ya está elegido se pinta con el acento */
+.btn-comparar {
+    border: 1px solid var(--an-borde);
+    background: var(--an-superficie);
+    color: var(--an-tinta);
+    font-weight: 600;
+    transition: background var(--an-transicion), border-color var(--an-transicion), color var(--an-transicion);
+}
+
+.btn-comparar:hover {
+    border-color: var(--an-acento);
+    color: var(--an-acento-oscuro);
+}
+
+.btn-comparar.elegido {
+    background: var(--an-acento-suave);
+    border-color: var(--an-acento);
+    color: var(--an-acento-oscuro);
+}
+
+/* Tabla lado a lado: la primera columna es el nombre del dato y las demás, un vehículo cada una */
+.tabla-comparar th[scope="row"],
+.tabla-comparar .dato-nombre {
+    width: 9rem;
+    color: var(--an-texto-suave);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tabla-comparar thead th {
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: normal;
+    vertical-align: top;
+    min-width: 13rem;
+    background: var(--an-superficie);
+}
+
+.comparar-foto {
+    aspect-ratio: 4 / 3;
+    border-radius: var(--an-radio-sm);
+    overflow: hidden;
+    background: var(--an-vendido-suave);
+    margin-bottom: .6rem;
+}
+
+.comparar-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.comparar-foto .sin-foto {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    color: var(--an-texto-suave);
+}
+
+.comparar-titulo {
+    color: var(--an-tinta);
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.comparar-titulo:hover {
+    color: var(--an-acento-oscuro);
+}
+
+/* Marca del mejor valor (menor precio, menor km, año más nuevo) */
+.mejor-valor {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    margin-left: .35rem;
+    padding: .1rem .5rem;
+    border-radius: 999px;
+    background: var(--an-disponible-suave);
+    color: var(--an-disponible);
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+/* Comparador en el celular: la columna de etiquetas queda angosta y fija a la izquierda al deslizar,
+   y cada vehículo tiene un ancho mínimo, así se ven las etiquetas y se desliza para ver el resto.
+   En pantalla grande no cambia nada. */
+@media (max-width: 767.98px) {
+    .tabla-comparar th[scope="row"],
+    .tabla-comparar .dato-nombre {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        width: 5.5rem;
+        min-width: 5.5rem;
+        max-width: 5.5rem;
+        padding: .6rem .5rem;
+        font-size: .8rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        background: var(--an-superficie);
+        /* Sombra suave a la derecha para que se note que el resto pasa por debajo */
+        box-shadow: 1px 0 0 var(--an-borde), 4px 0 6px -4px rgba(19, 32, 58, .15);
+    }
+
+    .tabla-comparar thead th {
+        min-width: 10.5rem;
+    }
+
+    .tabla-comparar > :not(caption) > * > * {
+        padding: .6rem .65rem;
+    }
+}
+
+/* ===== 15. Turnos de prueba (RF-13) ===== */
+.badge-turno {
+    font-weight: 700;
+    padding: .4em .7em;
+    border-radius: 999px;
+}
+
+.turno-pendiente { background: var(--an-reservado-suave); color: var(--an-reservado); }
+.turno-confirmado { background: #e4ecff; color: #2a4fb8; }
+.turno-realizado { background: var(--an-disponible-suave); color: var(--an-disponible); }
+.turno-cancelado { background: var(--an-vendido-suave); color: var(--an-vendido); }
+
+/* El bloque de turno va debajo del de consultas en el detalle */
+.turno-cta {
+    margin-top: 1rem;
+}
