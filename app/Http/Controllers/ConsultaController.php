@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\Vehiculo;
@@ -127,11 +128,20 @@ class ConsultaController extends Controller implements HasMiddleware
     /** Pasa la consulta al estado siguiente (RF-03) y actualiza el estado del vehículo (RF-06). */
     public function avanzar(Lead $consulta)
     {
+        $anterior = $consulta->estado;
         $error = $consulta->avanzar();
 
         if ($error !== null) {
             return redirect()->route('consultas.show', $consulta)->with('error', $error);
         }
+
+        // Auditoría: solo si el avance se concretó (si avanzar() devolvió un error, no llega acá)
+        $vehiculo = $consulta->vehiculo->fresh();
+        Auditoria::registrar('consulta.avanzar',
+            "Consulta #{$consulta->id} de {$consulta->cliente->name} por {$vehiculo->marca} {$vehiculo->modelo}: "
+            . Lead::ESTADOS[$anterior] . ' → ' . Lead::ESTADOS[$consulta->estado]
+            . '. Vehículo: ' . Vehiculo::ESTADOS[$vehiculo->estado] . '.',
+            $consulta);
 
         // Aviso en la campanita del cliente: su consulta avanzó (solo si el avance se concretó)
         $consulta->cliente->notify(ConsultaActualizada::porEstado($consulta));

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Models\Turno;
 use App\Models\User;
 use App\Models\Vehiculo;
@@ -126,7 +127,7 @@ class TurnoController extends Controller implements HasMiddleware
                 ->with('error', 'Este turno ya está ' . mb_strtolower(Turno::ESTADOS[$turno->estado]) . ' y no se puede cancelar.');
         }
 
-        $turno->update(['estado' => 'cancelado']);
+        $this->cambiarYAuditar($turno, 'cancelado', 'por el cliente');
 
         return redirect()->route('turnos.mios')->with('success', 'Cancelaste el turno.');
     }
@@ -157,6 +158,23 @@ class TurnoController extends Controller implements HasMiddleware
         ]);
     }
 
+    /**
+     * Cambia el estado del turno y lo deja en la auditoría, las dos cosas en una transacción.
+     * Ej. de detalle: "Turno #5 de Ana Pérez para Toyota Corolla el 20/11/2026 10:30: Pendiente → Confirmado (por el equipo)."
+     */
+    private function cambiarYAuditar(Turno $turno, string $nuevo, string $quien): void
+    {
+        DB::transaction(function () use ($turno, $nuevo, $quien) {
+            $anterior = $turno->estado;
+            $turno->update(['estado' => $nuevo]);
+
+            Auditoria::registrar('turno.estado',
+                "Turno #{$turno->id} de {$turno->cliente->name} para {$turno->vehiculo->marca} {$turno->vehiculo->modelo} "
+                . "el {$turno->fecha_hora->format('d/m/Y H:i')}: " . Turno::ESTADOS[$anterior] . ' → ' . Turno::ESTADOS[$nuevo] . " ({$quien}).",
+                $turno);
+        });
+    }
+
     /** El equipo confirma, cancela o marca como realizado un turno. Solo se aceptan las transiciones válidas. */
     public function cambiarEstado(Request $request, Turno $turno)
     {
@@ -175,7 +193,7 @@ class TurnoController extends Controller implements HasMiddleware
                 . ' no puede pasar a ' . mb_strtolower(Turno::ESTADOS[$nuevo]) . '.');
         }
 
-        $turno->update(['estado' => $nuevo]);
+        $this->cambiarYAuditar($turno, $nuevo, 'por el equipo');
 
         // Aviso en la campanita del cliente dueño del turno
         $turno->cliente->notify(new TurnoActualizado($turno));

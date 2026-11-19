@@ -30,9 +30,12 @@
                         @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="form-check mb-4">
-                        <input type="checkbox" id="recordarme" name="recordarme" value="1" class="form-check-input">
-                        <label for="recordarme" class="form-check-label">Mantener la sesión iniciada</label>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                        <div class="form-check mb-0">
+                            <input type="checkbox" id="recordarme" name="recordarme" value="1" class="form-check-input">
+                            <label for="recordarme" class="form-check-label">Mantener la sesión iniciada</label>
+                        </div>
+                        <a href="{{ route('password.request') }}" class="small">¿Olvidaste tu contraseña?</a>
                     </div>
 
                     <button type="submit" class="btn btn-acento btn-lg w-100">Entrar</button>

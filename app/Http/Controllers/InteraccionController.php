@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Models\Interaccion;
 use App\Models\Lead;
 use App\Notifications\ConsultaActualizada;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -36,11 +38,19 @@ class InteraccionController extends Controller implements HasMiddleware
             'comentario' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $consulta->interacciones()->create([
-            'tipo' => $datos['tipo'],
-            'fecha' => $datos['fecha'] ?? now(),
-            'comentario' => filled($datos['comentario'] ?? null) ? trim($datos['comentario']) : null,
-        ]);
+        // Contacto y auditoría en una transacción: queda escrito qué empleado registró cada contacto
+        DB::transaction(function () use ($consulta, $datos) {
+            $interaccion = $consulta->interacciones()->create([
+                'tipo' => $datos['tipo'],
+                'fecha' => $datos['fecha'] ?? now(),
+                'comentario' => filled($datos['comentario'] ?? null) ? trim($datos['comentario']) : null,
+            ]);
+
+            // El comentario no se copia: es una nota interna y ya está en la consulta
+            Auditoria::registrar('consulta.contacto',
+                Interaccion::TIPOS[$datos['tipo']] . " del {$interaccion->fecha->format('d/m/Y H:i')} en la consulta #{$consulta->id} de {$consulta->cliente->name}.",
+                $consulta);
+        });
 
         // Aviso en la campanita del cliente: el equipo se comunicó (sin el comentario, que es interno)
         $consulta->cliente->notify(ConsultaActualizada::porContacto($consulta, $datos['tipo']));

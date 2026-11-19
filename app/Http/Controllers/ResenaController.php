@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Models\Lead;
 use App\Models\Resena;
 use App\Models\User;
@@ -10,6 +11,7 @@ use App\Notifications\ResenaModerada;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -101,7 +103,15 @@ class ResenaController extends Controller implements HasMiddleware
             return $volver->with('error', 'Esta reseña ya fue ' . mb_strtolower(Resena::MODERACION[$resena->estado_moderacion]) . ' y no se puede cambiar.');
         }
 
-        $resena->update(['estado_moderacion' => $request->input('estado')]);
+        // Moderación y auditoría en una transacción. El texto de la reseña no se copia: ya está en su tabla.
+        DB::transaction(function () use ($resena, $request) {
+            $resena->update(['estado_moderacion' => $request->input('estado')]);
+
+            Auditoria::registrar('resena.moderar',
+                "Reseña #{$resena->id} de {$resena->cliente->name} sobre {$resena->vehiculo->marca} {$resena->vehiculo->modelo}: "
+                . Resena::MODERACION[$resena->estado_moderacion] . '.',
+                $resena);
+        });
 
         // Aviso en la campanita del cliente que la escribió
         $resena->cliente->notify(new ResenaModerada($resena));

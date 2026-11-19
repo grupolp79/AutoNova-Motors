@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ComparadorController;
 use App\Http\Controllers\ConsultaController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\FavoritoController;
 use App\Http\Controllers\InteraccionController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\PrecioReferenciaController;
+use App\Http\Controllers\RecuperacionController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\ResenaController;
@@ -30,6 +32,12 @@ Route::middleware('guest')->group(function () {
     // Registro de clientes: la cuenta creada es siempre de rol cliente (ver RegistroController)
     Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
     Route::post('/registro', [RegistroController::class, 'store'])->middleware('throttle:6,1')->name('registro.store');
+
+    // "¿Olvidaste tu contraseña?" (RF-05): pedir el enlace (5 intentos por minuto, como el login) y elegir la nueva
+    Route::get('/olvide-contrasena', [RecuperacionController::class, 'pedir'])->name('password.request');
+    Route::post('/olvide-contrasena', [RecuperacionController::class, 'enviar'])->middleware('throttle:5,1')->name('password.email');
+    Route::get('/restablecer-contrasena/{token}', [RecuperacionController::class, 'formulario'])->name('password.reset');
+    Route::post('/restablecer-contrasena', [RecuperacionController::class, 'guardar'])->middleware('throttle:5,1')->name('password.update');
 });
 Route::post('/logout', [AuthController::class, 'destroy'])->middleware('auth')->name('logout');
 
@@ -38,10 +46,15 @@ Route::get('/reportes/ventas', [ReporteController::class, 'ventas'])
     ->middleware('rol:admin')
     ->name('reportes.ventas');
 
-// Listado de usuarios y sus roles (solo lectura): solo Admin
-Route::get('/usuarios', [UsuarioController::class, 'index'])
-    ->middleware('rol:admin')
-    ->name('usuarios.index');
+// Usuarios: listado y alta de cuentas de empleado y admin. Solo Admin. No hay edición ni baja.
+Route::middleware('rol:admin')->group(function () {
+    Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios/crear', [UsuarioController::class, 'create'])->name('usuarios.create');
+    Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
+});
+
+// Auditoría (quién hizo qué y cuándo): solo Admin, solo lectura. El permiso está en AuditoriaController::middleware().
+Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 
 // Consultas (leads): el cliente consulta desde el detalle del vehículo y ve las suyas;
 // Empleado y Admin manejan la bandeja, el avance de estado y el historial de contactos.

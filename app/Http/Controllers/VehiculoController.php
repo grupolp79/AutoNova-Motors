@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Models\Vehiculo;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -62,6 +63,13 @@ class VehiculoController extends Controller implements HasMiddleware
         $vehiculo = DB::transaction(function () use ($datos, $urls) {
             $vehiculo = Vehiculo::create($datos);
             $this->guardarFotos($vehiculo, $urls);
+
+            // Auditoría dentro de la misma transacción: si algo falla, no queda ni el vehículo ni el registro
+            Auditoria::registrar('vehiculo.crear',
+                "Alta de {$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio}: " . $this->textoCampo('precio', $vehiculo->precio)
+                . ', estado ' . $this->textoCampo('estado', $vehiculo->estado) . '.',
+                $vehiculo);
+
             return $vehiculo;
         });
 
@@ -89,10 +97,18 @@ class VehiculoController extends Controller implements HasMiddleware
         [$datos, $urls] = $this->validar($request);
 
         DB::transaction(function () use ($vehiculo, $datos, $urls) {
-            $vehiculo->update($datos);
+            // fill() carga los datos nuevos sin guardar: así se puede ver qué cambió antes de save()
+            $vehiculo->fill($datos);
+            $cambios = $this->describirCambios($vehiculo);
+            $vehiculo->save();
+
             // Las fotos se reemplazan: se borran las anteriores y se cargan las del textarea
             $vehiculo->fotos()->delete();
             $this->guardarFotos($vehiculo, $urls);
+
+            Auditoria::registrar('vehiculo.editar',
+                "{$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio}. " . ($cambios ?: 'Sin cambios en los datos (fotos actualizadas).'),
+                $vehiculo);
         });
 
         return redirect()->route('vehiculos.show', $vehiculo)
@@ -113,8 +129,17 @@ class VehiculoController extends Controller implements HasMiddleware
         }
 
         try {
-            // Las fotos y los favoritos se borran solos por el cascadeOnDelete de la clave foránea
-            $vehiculo->delete();
+            // Baja y auditoría en una transacción: si la base rechaza el DELETE, tampoco queda el registro
+            DB::transaction(function () use ($vehiculo) {
+                // Las fotos y los favoritos se borran solos por el cascadeOnDelete de la clave foránea
+                $vehiculo->delete();
+
+                // El objeto conserva sus datos (y su id) después del delete, así queda escrito qué se borró
+                Auditoria::registrar('vehiculo.eliminar',
+                    "Baja de {$vehiculo->marca} {$vehiculo->modelo} {$vehiculo->anio} (" . $this->textoCampo('precio', $vehiculo->precio)
+                    . ', estado ' . $this->textoCampo('estado', $vehiculo->estado) . ').',
+                    $vehiculo);
+            });
         } catch (QueryException $e) {
             // Red de seguridad: si justo apareció un registro relacionado entre el conteo y el DELETE,
             // la base lo rechaza. SQLSTATE 23000 = violación de integridad (MariaDB 1451, SQLite 19).
@@ -128,6 +153,52 @@ class VehiculoController extends Controller implements HasMiddleware
 
         return redirect()->route('vehiculos.index')
             ->with('success', 'Vehículo eliminado correctamente.');
+    }
+
+    /**
+     * Texto de los cambios para la auditoría, comparando lo cargado con fill() contra lo que había en la base.
+     * Ej.: "Precio: U$S 15.000 → U$S 14.000. Estado: Disponible → Reservado."
+     * La descripción solo se marca como cambiada (puede ser larga). Devuelve '' si no cambió nada.
+     */
+    private function describirCambios(Vehiculo $vehiculo): string
+    {
+        $nombres = [
+            'marca' => 'Marca', 'modelo' => 'Modelo', 'anio' => 'Año', 'precio' => 'Precio', 'kilometraje' => 'Kilometraje',
+            'transmision' => 'Transmisión', 'combustible' => 'Combustible', 'estado' => 'Estado',
+            'destacado' => 'Destacado', 'descripcion' => 'Descripción',
+        ];
+
+        $partes = [];
+        foreach ($nombres as $campo => $nombre) {
+            $antes = $vehiculo->getOriginal($campo);
+            $despues = $vehiculo->getAttribute($campo);
+
+            // Los números se comparan como números: 15000.00 y 15000 son el mismo precio
+            $igual = is_numeric($antes) && is_numeric($despues) ? (float) $antes == (float) $despues : $antes == $despues;
+            if ($igual) {
+                continue;
+            }
+
+            $partes[] = $campo === 'descripcion'
+                ? 'Descripción modificada.'
+                : "{$nombre}: " . $this->textoCampo($campo, $antes) . ' → ' . $this->textoCampo($campo, $despues) . '.';
+        }
+
+        return implode(' ', $partes);
+    }
+
+    /** Cómo se muestra un valor en el texto de la auditoría (precio con U$S, estado con su nombre, etc.). */
+    private function textoCampo(string $campo, $valor): string
+    {
+        return match ($campo) {
+            'precio' => 'U$S ' . number_format((float) $valor, 0, ',', '.'),
+            'kilometraje' => number_format((float) $valor, 0, ',', '.') . ' km',
+            'estado' => Vehiculo::ESTADOS[$valor] ?? (string) $valor,
+            'transmision' => Vehiculo::TRANSMISIONES[$valor] ?? (string) $valor,
+            'combustible' => Vehiculo::COMBUSTIBLES[$valor] ?? (string) $valor,
+            'destacado' => $valor ? 'Sí' : 'No',
+            default => (string) $valor,
+        };
     }
 
     /**

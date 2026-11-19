@@ -112,17 +112,21 @@ class UsuariosListadoTest extends TestCase
     }
 
     #[Group('RF-10')]
-    public function test_es_solo_lectura_no_hay_rutas_para_modificar_usuarios(): void
+    public function test_los_usuarios_existentes_no_se_pueden_editar_ni_borrar(): void
     {
+        // Desde el extra B el Admin puede CREAR cuentas (POST /usuarios, ver UsuarioAltaTest),
+        // pero sigue sin haber rutas para cambiar o borrar las que existen.
         $admin = $this->admin();
         $cliente = $this->cliente();
 
-        // 405 = la ruta existe pero no admite ese método; 404 = la ruta no existe. Ninguna modifica datos.
-        $this->actingAs($admin)->post('/usuarios', ['rol' => 'admin'])->assertStatus(405);
+        // 404 = la ruta no existe. Un POST incompleto no toca a nadie: solo da errores de validación.
         $this->actingAs($admin)->put("/usuarios/{$cliente->id}", ['rol' => 'admin'])->assertNotFound();
+        $this->actingAs($admin)->patch("/usuarios/{$cliente->id}", ['rol' => 'admin'])->assertNotFound();
         $this->actingAs($admin)->delete("/usuarios/{$cliente->id}")->assertNotFound();
+        $this->actingAs($admin)->post('/usuarios', ['rol' => 'admin'])->assertSessionHasErrors(['name', 'email', 'password']);
 
         $this->assertSame('cliente', $cliente->fresh()->rol);
+        $this->assertSame(2, \App\Models\User::count());
     }
 
     #[Group('RF-10')]

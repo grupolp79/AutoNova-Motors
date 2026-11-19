@@ -17,6 +17,10 @@
             <span class="antetitulo">Administración</span>
             <h1>Usuarios del sistema</h1>
         </div>
+        {{-- Alta de cuentas de empleado y admin (los clientes se registran solos) --}}
+        <a href="{{ route('usuarios.create') }}" class="btn btn-acento">
+            <i class="bi bi-person-plus" aria-hidden="true"></i> Crear usuario
+        </a>
     </div>
 
     {{-- Cantidad por rol; cada tarjeta filtra la lista --}}

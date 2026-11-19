@@ -117,6 +117,10 @@
                             <a class="nav-link @if (request()->routeIs('usuarios.index')) active @endif"
                                href="{{ route('usuarios.index') }}">Usuarios</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @if (request()->routeIs('auditoria.index')) active @endif"
+                               href="{{ route('auditoria.index') }}">Auditoría</a>
+                        </li>
                     @endif
 
                     {{-- Campanita de avisos (los tres roles) --}}

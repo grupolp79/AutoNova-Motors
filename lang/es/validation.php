@@ -43,6 +43,7 @@ return [
         'email' => 'correo electrónico',
         'password' => 'contraseña',
         'name' => 'nombre',
+        'rol' => 'rol',
         'mensaje' => 'mensaje',
         'tipo' => 'tipo de contacto',
         'fecha' => 'fecha',

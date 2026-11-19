@@ -27,8 +27,8 @@ class RegistroController extends Controller
         $datos = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            // 72 es el máximo que admite bcrypt; 'confirmed' exige el campo password_confirmation igual
-            'password' => ['required', 'string', 'min:8', 'max:72', 'confirmed'],
+            // Mínimo 8, máximo 72 y con confirmación (las reglas están en el modelo User)
+            'password' => User::REGLAS_CONTRASENA,
         ]);
 
         // El rol no sale del formulario: se fija acá. La contraseña se guarda con hash por el cast 'hashed' del modelo.

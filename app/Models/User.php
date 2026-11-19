@@ -48,6 +48,21 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Reglas de la contraseña, las mismas en todos lados: registro, recuperación y alta de usuarios por el Admin.
+     * 72 es el máximo que admite bcrypt; 'confirmed' exige el campo password_confirmation igual.
+     */
+    const REGLAS_CONTRASENA = ['required', 'string', 'min:8', 'max:72', 'confirmed'];
+
+    /**
+     * Correo de "¿Olvidaste tu contraseña?". Laravel llama a este método desde Password::sendResetLink();
+     * se reemplaza para mandar el texto en español (App\Notifications\RestablecerContrasena).
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\RestablecerContrasena($token));
+    }
+
     // Roles del sistema: cliente, empleado y admin (columna users.rol)
     public function esAdmin(): bool
     {
