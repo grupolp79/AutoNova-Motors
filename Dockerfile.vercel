@@ -1,0 +1,29 @@
+# Contenedor para publicar Servicio Automotriz (Laravel 12) en Vercel.
+# Basado en la guía oficial de Vercel "Deploy Laravel on Vercel with Docker" (FrankenPHP).
+FROM dunglas/frankenphp:1-php8.4-bookworm AS base
+RUN install-php-extensions pdo_mysql intl zip
+WORKDIR /app
+
+FROM base AS deps
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
+COPY . .
+RUN composer dump-autoload --no-dev --classmap-authoritative \
+ && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+
+FROM base AS runtime
+COPY --from=deps /app /app
+COPY Caddyfile /etc/caddy/Caddyfile
+# Valores por defecto. Las claves y la base de datos se cargan como variables de entorno en Vercel.
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr \
+    SESSION_DRIVER=database \
+    CACHE_STORE=database \
+    QUEUE_CONNECTION=sync \
+    PORT=80
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache /data/caddy /config/caddy \
+ && setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp
+USER www-data
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]

@@ -5,6 +5,7 @@ namespace App\Providers;
 use Carbon\Carbon;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -28,5 +29,10 @@ class AppServiceProvider extends ServiceProvider
         // La interfaz está en español: mensajes de validación (lang/es) y nombres de meses
         App::setLocale('es');
         Carbon::setLocale('es');
+
+        // En producción todos los links y los estilos se generan con https
+        if (app()->isProduction()) {
+            URL::forceScheme('https');
+        }
     }
 }
