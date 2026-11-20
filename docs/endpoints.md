@@ -38,7 +38,7 @@ Todas las rutas tienen el middleware `web` (sesión, cookies y protección CSRF)
 | POST | `/registro` | registro.store | RegistroController@store | web, guest, throttle:6,1 |
 | GET, HEAD | `/olvide-contrasena` | password.request | RecuperacionController@pedir | web, guest |
 | POST | `/olvide-contrasena` | password.email | RecuperacionController@enviar | web, guest, throttle:5,1 |
-| GET, HEAD | `/restablecer-contrasena/{token}` | password.reset | RecuperacionController@formulario | web, guest |
+| GET, HEAD | `/restablecer-contrasena` | password.reset | RecuperacionController@formulario | web, guest |
 | POST | `/restablecer-contrasena` | password.update | RecuperacionController@guardar | web, guest, throttle:5,1 |
 
 ## Con sesión

@@ -54,15 +54,6 @@ class User extends Authenticatable
      */
     const REGLAS_CONTRASENA = ['required', 'string', 'min:8', 'max:72', 'confirmed'];
 
-    /**
-     * Correo de "¿Olvidaste tu contraseña?". Laravel llama a este método desde Password::sendResetLink();
-     * se reemplaza para mandar el texto en español (App\Notifications\RestablecerContrasena).
-     */
-    public function sendPasswordResetNotification($token): void
-    {
-        $this->notify(new \App\Notifications\RestablecerContrasena($token));
-    }
-
     // Roles del sistema: cliente, empleado y admin (columna users.rol)
     public function esAdmin(): bool
     {

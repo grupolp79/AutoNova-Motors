@@ -4,12 +4,15 @@ Hola, {!! $nombre !!}:
 
 Recibimos un pedido para crear una contraseña nueva para tu cuenta de AutoNova Motors.
 
-Para elegirla, abrí este enlace en el navegador:
+Tu código es:
 
-{!! $enlace !!}
+{{ $codigo }}
 
-El enlace vence en {{ $minutos }} minutos y se puede usar una sola vez.
+Escribilo en la pantalla «Crear contraseña nueva» junto con tu correo y la contraseña que quieras.
+
+Vence en {{ $minutos }} minutos y se puede usar una sola vez.
 Si no lo pediste, no tenés que hacer nada: tu contraseña sigue siendo la misma.
+No compartas este código con nadie.
 
 Saludos,
 El equipo de AutoNova Motors

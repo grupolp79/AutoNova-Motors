@@ -36,10 +36,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
     Route::post('/registro', [RegistroController::class, 'store'])->middleware('throttle:6,1')->name('registro.store');
 
-    // "¿Olvidaste tu contraseña?" (RF-05): pedir el enlace (5 intentos por minuto, como el login) y elegir la nueva
+    // "¿Olvidaste tu contraseña?" (RF-05): pedir el código por correo (5 intentos por minuto, como el login) y elegir la nueva
     Route::get('/olvide-contrasena', [RecuperacionController::class, 'pedir'])->name('password.request');
     Route::post('/olvide-contrasena', [RecuperacionController::class, 'enviar'])->middleware('throttle:5,1')->name('password.email');
-    Route::get('/restablecer-contrasena/{token}', [RecuperacionController::class, 'formulario'])->name('password.reset');
+    Route::get('/restablecer-contrasena', [RecuperacionController::class, 'formulario'])->name('password.reset');
     Route::post('/restablecer-contrasena', [RecuperacionController::class, 'guardar'])->middleware('throttle:5,1')->name('password.update');
 });
 Route::post('/logout', [AuthController::class, 'destroy'])->middleware('auth')->name('logout');

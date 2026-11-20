@@ -2,6 +2,8 @@
 
 @section('titulo', 'Crear contraseña nueva')
 
+@use('App\Http\Controllers\RecuperacionController')
+
 @section('contenido')
     <div class="caja-login">
         <div class="card">
@@ -12,28 +14,35 @@
             </div>
 
             <div class="card-body p-4">
-                {{-- Código inválido, vencido o ya usado: se explica y se ofrece pedir otro enlace --}}
-                @error('email')
-                    <div class="alert alert-danger" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
-                        <div>
-                            {{ $message }}
-                            <a href="{{ route('password.request') }}" class="alert-link">Pedir otro enlace</a>
-                        </div>
-                    </div>
-                @enderror
+                <p class="text-muted">
+                    Escribí tu correo, el código de 6 dígitos que te mandamos y la contraseña nueva.
+                    El código vence en {{ RecuperacionController::MINUTOS_VALIDEZ }} minutos.
+                </p>
 
                 <form action="{{ route('password.update') }}" method="POST" novalidate>
                     @csrf
-                    {{-- El código y el correo vienen en el enlace del correo --}}
-                    <input type="hidden" name="token" value="{{ $token }}">
-                    <input type="hidden" name="email" value="{{ old('email', $email) }}">
 
-                    <p class="text-muted small">Cuenta: <strong>{{ old('email', $email) }}</strong></p>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Correo electrónico</label>
+                        {{-- Viene escrito desde la pantalla anterior (flash 'email') o de un intento fallido (old) --}}
+                        <input type="email" id="email" name="email" value="{{ old('email', session('email')) }}" required
+                               autocomplete="email" class="form-control @error('email') is-invalid @enderror">
+                        @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Código de 6 dígitos</label>
+                        {{-- inputmode="numeric" abre el teclado de números en el celular; one-time-code permite
+                             que el teléfono sugiera el código. No se vuelve a llenar después de un error. --}}
+                        <input type="text" id="codigo" name="codigo" required autofocus
+                               inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+                               class="form-control @error('codigo') is-invalid @enderror">
+                        @error('codigo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
 
                     <div class="mb-3">
                         <label for="password" class="form-label">Contraseña nueva</label>
-                        <input type="password" id="password" name="password" required autofocus
+                        <input type="password" id="password" name="password" required
                                autocomplete="new-password" class="form-control @error('password') is-invalid @enderror">
                         @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         <div class="form-text">Al menos 8 caracteres.</div>
@@ -49,5 +58,8 @@
                 </form>
             </div>
         </div>
+        <p class="text-center text-muted small mt-3">
+            ¿No te llegó o ya venció? <a href="{{ route('password.request') }}">Pedir un código nuevo</a>
+        </p>
     </div>
 @endsection

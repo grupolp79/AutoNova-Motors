@@ -231,17 +231,16 @@ class AuditoriaTest extends TestCase
         $this->post('/olvide-contrasena', ['email' => 'ana@correo.test']);
         $codigo = null;
         Notification::assertSentTo($ana, RestablecerContrasena::class, function ($aviso) use (&$codigo, $ana) {
-            preg_match('#/restablecer-contrasena/([^?]+)#', $aviso->toMail($ana)->viewData['enlace'], $partes);
-            $codigo = $partes[1];
+            $codigo = $aviso->toMail($ana)->viewData['codigo'];
 
             return true;
         });
 
-        // Pedir el enlace no es un cambio: todavía no hay registro
+        // Pedir el código no es un cambio: todavía no hay registro
         $this->assertSame(0, Auditoria::count());
 
         $this->post('/restablecer-contrasena', [
-            'token' => $codigo, 'email' => 'ana@correo.test',
+            'codigo' => $codigo, 'email' => 'ana@correo.test',
             'password' => 'clave-nueva-456', 'password_confirmation' => 'clave-nueva-456',
         ])->assertRedirect(route('login'));
 
@@ -289,8 +288,8 @@ class AuditoriaTest extends TestCase
         ])->assertSessionHasErrors('email');
         auth()->logout();
         $this->post('/restablecer-contrasena', [
-            'token' => 'inventado', 'email' => $empleado->email, 'password' => 'clave-nueva-456', 'password_confirmation' => 'clave-nueva-456',
-        ])->assertSessionHasErrors('email');
+            'codigo' => '123456', 'email' => $empleado->email, 'password' => 'clave-nueva-456', 'password_confirmation' => 'clave-nueva-456',
+        ])->assertSessionHasErrors('codigo');
 
         // Pedidos rechazados por rol
         $this->actingAs($this->cliente())->post('/vehiculos', $this->datosFormulario())->assertForbidden();

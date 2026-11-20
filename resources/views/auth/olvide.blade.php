@@ -13,7 +13,7 @@
 
             <div class="card-body p-4">
                 <p class="text-muted">
-                    Escribí el correo con el que te registraste. Te mandamos un enlace para crear una contraseña nueva.
+                    Escribí el correo con el que te registraste. Te mandamos un código de 6 dígitos para crear una contraseña nueva.
                 </p>
 
                 <form action="{{ route('password.email') }}" method="POST" novalidate>
@@ -25,7 +25,7 @@
                         @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <button type="submit" class="btn btn-acento btn-lg w-100">Enviar enlace</button>
+                    <button type="submit" class="btn btn-acento btn-lg w-100">Enviar código</button>
                 </form>
             </div>
         </div>
