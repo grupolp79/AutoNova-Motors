@@ -7,13 +7,12 @@
 @section('contenido')
     <div class="caja-login">
         <div class="card">
-            <div class="cabecera-login">
-                <span class="marca-icono"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
-                <h1 class="h4 mb-1">Crear contraseña nueva</h1>
-                <p class="small mb-0">AutoNova Motors</p>
-            </div>
+            {{-- Encabezado: solo el logo del Grupo LP de fondo, sin texto (igual que en Iniciar sesión) --}}
+            <div class="cabecera-con-logo" role="img" aria-label="Logo de AutoNova Motors"></div>
 
             <div class="card-body p-4">
+                <h1 class="titulo-formulario">Crear contraseña nueva</h1>
+
                 <p class="text-muted">
                     Escribí tu correo, el código de 6 dígitos que te mandamos y la contraseña nueva.
                     El código vence en {{ RecuperacionController::MINUTOS_VALIDEZ }} minutos.

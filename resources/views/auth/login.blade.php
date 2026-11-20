@@ -5,14 +5,12 @@
 @section('contenido')
     <div class="caja-login">
         <div class="card">
-            {{-- Cabecera con el degradé de la marca --}}
-            <div class="cabecera-login">
-                <span class="marca-icono"><i class="bi bi-car-front-fill" aria-hidden="true"></i></span>
-                <h1 class="h4 mb-1">Iniciar sesión</h1>
-                <p class="small mb-0">AutoNova Motors</p>
-            </div>
+            {{-- Encabezado: solo el logo del Grupo LP de fondo, sin texto (clase cabecera-con-logo en autonova.css) --}}
+            <div class="cabecera-con-logo" role="img" aria-label="Logo de AutoNova Motors"></div>
 
             <div class="card-body p-4">
+                <h1 class="titulo-formulario">Iniciar sesión</h1>
+
                 <form action="{{ route('login.store') }}" method="POST" novalidate>
                     @csrf
 

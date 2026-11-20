@@ -5,13 +5,12 @@
 @section('contenido')
     <div class="caja-login">
         <div class="card">
-            <div class="cabecera-login">
-                <span class="marca-icono"><i class="bi bi-person-plus-fill" aria-hidden="true"></i></span>
-                <h1 class="h4 mb-1">Crear cuenta</h1>
-                <p class="small mb-0">Para consultar por los vehículos de AutoNova Motors</p>
-            </div>
+            {{-- Encabezado: solo el logo del Grupo LP de fondo, sin texto (clase cabecera-con-logo en autonova.css) --}}
+            <div class="cabecera-con-logo" role="img" aria-label="Logo de AutoNova Motors"></div>
 
             <div class="card-body p-4">
+                <h1 class="titulo-formulario">Crear cuenta</h1>
+
                 <form action="{{ route('registro.store') }}" method="POST" novalidate>
                     @csrf
 

@@ -124,19 +124,6 @@ a:focus-visible,
     letter-spacing: -.01em;
 }
 
-/* Ícono de la marca dentro de un círculo naranja */
-.marca-icono {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--an-acento);
-    color: #fff;
-    font-size: 1.1rem;
-}
-
 .navbar-autonova .nav-link {
     color: rgba(255, 255, 255, .75);
     border-radius: 999px;
@@ -432,25 +419,6 @@ a:focus-visible,
 
 .caja-login .card {
     overflow: hidden;
-}
-
-/* Cabecera de la tarjeta de login con el degradé de la marca */
-.cabecera-login {
-    background: var(--an-degrade);
-    color: #fff;
-    padding: 2rem 1.5rem 1.6rem;
-    text-align: center;
-}
-
-.cabecera-login .marca-icono {
-    width: 56px;
-    height: 56px;
-    font-size: 1.6rem;
-    margin-bottom: .75rem;
-}
-
-.cabecera-login p {
-    color: rgba(255, 255, 255, .75);
 }
 
 .pagina-error {
@@ -1392,4 +1360,35 @@ a:focus-visible,
     object-fit: cover;
     border-radius: calc(var(--an-radio-sm) - 4px);
     background: var(--an-vendido-suave);
+}
+
+/* ------------------------------------------------------------------
+   18. Logo del Grupo LP (public/img/logo-glp.png, 452 × 326 px)
+   ------------------------------------------------------------------ */
+/* En la barra: alto fijo y el ancho se ajusta solo, así no se deforma */
+.logo-marca {
+    height: 40px;
+    width: auto;
+    border-radius: .4rem;
+}
+
+/* Encabezado de Iniciar sesión, Crear cuenta, ¿Olvidaste tu contraseña? y Crear contraseña nueva: solo el logo, con sus colores y sin texto encima.
+   cover + center llenan el recuadro sin deformarlo (recorta los bordes si hace falta). */
+.cabecera-con-logo {
+    height: 180px;
+    background: url('../img/logo-glp.png') center / cover no-repeat;
+}
+
+/* En el celular el recuadro es más angosto: un poco más bajo para que el logo no se recorte tanto */
+@media (max-width: 575.98px) {
+    .cabecera-con-logo { height: 150px; }
+}
+
+/* Título del formulario, en la parte blanca: oscuro, más grande y en negrita que las etiquetas,
+   alineado a la izquierda como ellas */
+.titulo-formulario {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--an-tinta);
+    margin: .25rem 0 1.25rem;
 }

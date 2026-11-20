@@ -13,6 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     {{-- Estilos propios. El ?v= cambia cuando se modifica el archivo, así el navegador no usa una copia vieja --}}
     <link href="{{ asset('css/autonova.css') }}?v={{ filemtime(public_path('css/autonova.css')) }}" rel="stylesheet">
+    {{-- Logo del Grupo LP como ícono de la pestaña del navegador --}}
+    <link rel="icon" type="image/png" href="{{ asset('img/logo-glp.png') }}">
     {{-- Cada vista puede agregar sus propios CSS acá con @push('estilos') --}}
     @stack('estilos')
 </head>
@@ -21,7 +23,8 @@
 <nav class="navbar navbar-expand-lg navbar-dark navbar-autonova sticky-top mb-4">
     <div class="container">
         <a class="navbar-brand" href="{{ route('vehiculos.index') }}">
-            <span class="marca-icono"><i class="bi bi-car-front-fill" aria-hidden="true"></i></span>
+            {{-- Logo del Grupo LP (public/img/logo-glp.png). El alt queda vacío porque al lado ya dice el nombre --}}
+            <img src="{{ asset('img/logo-glp.png') }}" alt="" class="logo-marca">
             AutoNova Motors
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
@@ -182,9 +185,15 @@
 </main>
 
 <footer class="pie">
+    {{-- Todo centrado. Desde 576 px (sm) va en una línea con el guion; en un celular angosto,
+         donde no entra, se parte en dos líneas (d-block) y el guion se oculta (d-none). --}}
     <div class="container text-center">
-        <i class="bi bi-car-front-fill" aria-hidden="true"></i>
-        AutoNova Motors · Servicio Automotriz
+        <span class="d-block d-sm-inline">
+            <i class="bi bi-car-front-fill" aria-hidden="true"></i>
+            AutoNova Motors · Servicio Automotriz
+        </span>
+        <span class="d-none d-sm-inline">-</span>
+        <span class="d-block d-sm-inline">Realizado por Grupo LP</span>
     </div>
 </footer>
 
